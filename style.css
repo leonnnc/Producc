@@ -678,8 +678,8 @@ input:focus, select:focus, textarea:focus {
 
 /* Grid del Dashboard */
 .dashboard-main-grid {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 25px;
 }
 
