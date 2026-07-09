@@ -11,7 +11,10 @@ import {
   getActiveProgramSheet,
   getHistoricalProgramSheets,
   getAnnouncements,
-  createAnnouncement
+  createAnnouncement,
+  getServiceSignups,
+  signupForService,
+  cancelSignupForService
 } from './data.js';
 
 import { isFirebaseConfigured } from './firebase-config.js';
@@ -76,6 +79,8 @@ const DOM = {
   statPendingUsers: document.getElementById('stat-pending-users'),
   adminStatCard: document.getElementById('admin-stat-card'),
   activeProgramContainer: document.getElementById('active-program-container'),
+  activeAgendaBadge: document.getElementById('active-agenda-badge'),
+  activeAgendaContainer: document.getElementById('active-agenda-container'),
   announcementsContainer: document.getElementById('announcements-container'),
   btnOpenAnnModal: document.getElementById('btn-create-announcement-modal'),
   
@@ -633,8 +638,9 @@ async function renderDashboardHome() {
     console.error("Error al calcular estadísticas:", err);
   }
 
-  // Renderizar Programación Activa y Anuncios
+  // Renderizar Programación Activa, Agenda Activa y Anuncios
   renderActiveProgram();
+  renderActiveAgenda();
   renderAnnouncements();
 }
 
@@ -706,6 +712,163 @@ async function renderActiveProgram() {
     DOM.activeProgramContainer.innerHTML = `<p class="placeholder-text">Error al cargar programación activa.</p>`;
   }
 }
+
+// Determina la fecha y hora del próximo servicio
+async function getTargetService() {
+  const activeProg = await getActiveProgramSheet();
+  if (activeProg) {
+    return {
+      date: activeProg.date,
+      time: activeProg.time,
+      isProgrammed: true
+    };
+  }
+
+  // Si no hay programación cargada, buscamos el próximo servicio por horario fijo
+  const now = new Date();
+  
+  const getYearMonthDayString = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const parseServiceDateTime = (dateStr, timeStr) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    let [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    return new Date(year, month - 1, day, hours, minutes);
+  };
+
+  for (let i = 0; i < 8; i++) {
+    const testDate = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+    const dayOfWeek = testDate.getDay(); // 0 = Domingo, 3 = Miércoles
+    
+    let slots = [];
+    if (dayOfWeek === 0) {
+      slots = ["08:00 AM", "11:00 AM", "01:00 PM", "07:00 PM"];
+    } else if (dayOfWeek === 3) {
+      slots = ["07:30 PM"];
+    }
+    
+    for (let slot of slots) {
+      const dateStr = getYearMonthDayString(testDate);
+      const serviceDate = parseServiceDateTime(dateStr, slot);
+      const serviceEndDate = new Date(serviceDate.getTime() + 2 * 60 * 60 * 1000); // 2 horas
+      if (serviceEndDate >= now) {
+        return {
+          date: dateStr,
+          time: slot,
+          isProgrammed: false
+        };
+      }
+    }
+  }
+  return null;
+}
+
+// Renderiza la lista de personal asignado al próximo servicio
+async function renderActiveAgenda() {
+  DOM.activeAgendaContainer.innerHTML = '<div class="loading-spinner"></div>';
+  
+  try {
+    const target = await getTargetService();
+    if (!target) {
+      DOM.activeAgendaBadge.textContent = '0 Asignados';
+      DOM.activeAgendaContainer.innerHTML = '<p class="placeholder-text">No hay servicios próximos configurados.</p>';
+      return;
+    }
+
+    // Obtener los anotados
+    const signups = await getServiceSignups(target.date, target.time);
+    DOM.activeAgendaBadge.textContent = `${signups.length} Asignado${signups.length === 1 ? '' : 's'}`;
+
+    const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
+
+    // Formatear fecha bonita
+    const parsedDate = new Date(target.date + 'T00:00:00');
+    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${monthNames[parsedDate.getMonth()]} (${target.time})`;
+
+    // Agrupar por área
+    const groups = {};
+    signups.forEach(s => {
+      if (!groups[s.userArea]) groups[s.userArea] = [];
+      groups[s.userArea].push(s);
+    });
+
+    let signupsHtml = '';
+    if (signups.length === 0) {
+      signupsHtml = `
+        <div style="text-align: center; padding: 15px 0;">
+          <p class="placeholder-text" style="margin-bottom: 0;">Ningún miembro se ha anotado en este servicio aún.</p>
+        </div>
+      `;
+    } else {
+      signupsHtml = `
+        <div class="agenda-group-list">
+          ${Object.keys(groups).map(area => `
+            <div class="agenda-group-area">
+              <span class="agenda-group-title"><i class="fa-solid fa-people-group"></i> ${area}</span>
+              <div class="agenda-group-members">
+                ${groups[area].map(m => `
+                  <div class="agenda-member-tag">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>${m.userName} <small style="color:var(--text-muted);">(${m.userAlias})</small></span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    DOM.activeAgendaContainer.innerHTML = `
+      <div class="active-agenda-card-wrapper">
+        <div class="active-agenda-header-info">
+          <div>
+            <span class="agenda-info-label"><i class="fa-regular fa-clock"></i> Próximo Servicio Activo:</span>
+            <h4 class="agenda-info-date">${formattedDate}</h4>
+          </div>
+          <button id="btn-toggle-active-signup" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
+            ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Quitarme' : '<i class="fa-solid fa-user-plus"></i> Anotarme'}
+          </button>
+        </div>
+        ${signupsHtml}
+      </div>
+    `;
+
+    // Hook del botón de anotarse/quitarse
+    document.getElementById('btn-toggle-active-signup').addEventListener('click', async () => {
+      try {
+        if (isSignedUp) {
+          await cancelSignupForService(target.date, target.time, currentUser.alias);
+        } else {
+          await signupForService(target.date, target.time, currentUser);
+        }
+        // Volver a renderizar
+        renderActiveAgenda();
+        // Si la sección activa es Agenda, también refrescarla
+        const activeSection = document.querySelector('.content-section:not(.hidden)');
+        if (activeSection && activeSection.id === 'sec-agenda') {
+          renderCalendar();
+        }
+      } catch (err) {
+        alert("Error al guardar la asignación: " + err.message);
+      }
+    });
+
+  } catch (err) {
+    console.error("Error al cargar la agenda activa:", err);
+    DOM.activeAgendaContainer.innerHTML = '<p class="placeholder-text">Error al cargar el personal asignado.</p>';
+  }
+}
+
 
 // Renderiza lista de anuncios en el dashboard
 async function renderAnnouncements() {
@@ -822,7 +985,7 @@ function createCalendarDay(dayNum, isOtherMonth, isToday, isServiceDay, dateStr,
 }
 
 // Muestra el detalle del día de servicio seleccionado en el calendario
-function selectCalendarDay(dateStr, dayProgs) {
+async function selectCalendarDay(dateStr, dayProgs) {
   selectedDate = dateStr;
   
   const parsedDate = new Date(dateStr + 'T00:00:00');
@@ -830,7 +993,7 @@ function selectCalendarDay(dateStr, dayProgs) {
   const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${parsedDate.toLocaleDateString('es-ES', { month: 'long' })}`;
   
   DOM.selectedDayTitle.textContent = formattedDate;
-  DOM.selectedDayContent.innerHTML = '';
+  DOM.selectedDayContent.innerHTML = '<div class="loading-spinner"></div>';
   
   const dayOfWeek = parsedDate.getDay(); // 0 = Domingo, 3 = Miércoles
   let slots = [];
@@ -844,7 +1007,7 @@ function selectCalendarDay(dateStr, dayProgs) {
   const listEl = document.createElement('div');
   listEl.className = 'service-list';
   
-  slots.forEach(slot => {
+  for (const slot of slots) {
     const associatedProg = dayProgs.find(p => p.time === slot);
     const itemEl = document.createElement('div');
     itemEl.className = 'service-item';
@@ -892,10 +1055,54 @@ function selectCalendarDay(dateStr, dayProgs) {
         });
       }
     }
+
+    // --- SECCIÓN DE AGENDA / PERSONAL ASIGNADO ---
+    try {
+      const signups = await getServiceSignups(dateStr, slot);
+      const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
+      
+      const agendaContainer = document.createElement('div');
+      agendaContainer.className = 'service-item-agenda-container';
+      
+      const signupsHtml = signups.length === 0 
+        ? `<span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-users-slash"></i> Sin personal anotado</span>`
+        : `<span style="font-size:11px; color:var(--text-sub); line-height: 1.4;"><i class="fa-solid fa-user-check text-cyan"></i> ${signups.map(s => `${s.userName} (${s.userArea})`).join(', ')}</span>`;
+      
+      agendaContainer.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05); gap:10px;">
+          ${signupsHtml}
+          <button class="btn btn-outline btn-xs btn-toggle-slot-signup" style="flex-shrink:0;">
+            ${isSignedUp ? '<i class="fa-solid fa-user-minus text-red"></i> Quitarme' : '<i class="fa-solid fa-user-plus text-cyan"></i> Anotarme'}
+          </button>
+        </div>
+      `;
+
+      // Escuchador para anotarse en el slot
+      agendaContainer.querySelector('.btn-toggle-slot-signup').addEventListener('click', async () => {
+        try {
+          if (isSignedUp) {
+            await cancelSignupForService(dateStr, slot, currentUser.alias);
+          } else {
+            await signupForService(dateStr, slot, currentUser);
+          }
+          // Recargar el detalle del día
+          selectCalendarDay(dateStr, dayProgs);
+          // Recargar la agenda en el dashboard también
+          renderActiveAgenda();
+        } catch (err) {
+          alert("Error al guardar la asignación: " + err.message);
+        }
+      });
+
+      itemEl.appendChild(agendaContainer);
+    } catch (err) {
+      console.error("Error al cargar agenda para slot:", err);
+    }
     
     listEl.appendChild(itemEl);
-  });
+  }
   
+  DOM.selectedDayContent.innerHTML = '';
   DOM.selectedDayContent.appendChild(listEl);
 }
 

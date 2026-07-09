@@ -136,6 +136,9 @@ const initLocalStorage = () => {
   if (!localStorage.getItem("erp_programming")) {
     localStorage.setItem("erp_programming", JSON.stringify([]));
   }
+  if (!localStorage.getItem("erp_agenda")) {
+    localStorage.setItem("erp_agenda", JSON.stringify([]));
+  }
 };
 
 if (!isFirebaseActive) {
@@ -766,4 +769,87 @@ export async function loginUserWithGoogle() {
     }
   });
 }
+
+/**
+ * Obtiene el listado de miembros anotados en un servicio específico (Fecha y Hora).
+ * @param {string} date Fecha del servicio.
+ * @param {string} time Hora del servicio.
+ * @returns {Promise<Array>} Listado de asignaciones.
+ */
+export async function getServiceSignups(date, time) {
+  if (isFirebaseActive && dbPromise) {
+    const fb = await dbPromise;
+    if (fb) {
+      const agendaRef = fb.firestore.collection(fb.firebaseDb, "agenda");
+      const q = fb.firestore.query(agendaRef, fb.firestore.where("date", "==", date), fb.firestore.where("time", "==", time));
+      const querySnapshot = await fb.firestore.getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data());
+    }
+  }
+
+  // Fallback LocalStorage
+  const agenda = JSON.parse(localStorage.getItem("erp_agenda") || "[]");
+  return agenda.filter(a => a.date === date && a.time === time);
+}
+
+/**
+ * Anota (registra) a un miembro en un servicio específico.
+ * @param {string} date Fecha del servicio.
+ * @param {string} time Hora del servicio.
+ * @param {Object} user Datos del usuario que se anota.
+ */
+export async function signupForService(date, time, user) {
+  const entryId = `${date}_${time.replace(/[:\s]/g, '-')}_${user.alias}`;
+  const entry = {
+    id: entryId,
+    date: date,
+    time: time,
+    userAlias: user.alias,
+    userName: user.name,
+    userArea: user.area,
+    userRole: user.role
+  };
+
+  if (isFirebaseActive && dbPromise) {
+    const fb = await dbPromise;
+    if (fb) {
+      const docRef = fb.firestore.doc(fb.firebaseDb, "agenda", entryId);
+      await fb.firestore.setDoc(docRef, entry);
+      return;
+    }
+  }
+
+  // Fallback LocalStorage
+  const agenda = JSON.parse(localStorage.getItem("erp_agenda") || "[]");
+  // Evitar duplicados
+  if (!agenda.some(a => a.id === entryId)) {
+    agenda.push(entry);
+    localStorage.setItem("erp_agenda", JSON.stringify(agenda));
+  }
+}
+
+/**
+ * Cancela la anotación de un miembro en un servicio.
+ * @param {string} date Fecha del servicio.
+ * @param {string} time Hora del servicio.
+ * @param {string} userAlias Alias del usuario que cancela.
+ */
+export async function cancelSignupForService(date, time, userAlias) {
+  const entryId = `${date}_${time.replace(/[:\s]/g, '-')}_${userAlias}`;
+
+  if (isFirebaseActive && dbPromise) {
+    const fb = await dbPromise;
+    if (fb) {
+      const docRef = fb.firestore.doc(fb.firebaseDb, "agenda", entryId);
+      await fb.firestore.deleteDoc(docRef);
+      return;
+    }
+  }
+
+  // Fallback LocalStorage
+  let agenda = JSON.parse(localStorage.getItem("erp_agenda") || "[]");
+  agenda = agenda.filter(a => a.id !== entryId);
+  localStorage.setItem("erp_agenda", JSON.stringify(agenda));
+}
+
 

@@ -1621,6 +1621,86 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
+/* ==========================================================================
+   SECCIÓN: AGENDA ACTIVA EN DASHBOARD
+   ========================================================================== */
+.active-agenda-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.active-agenda-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-glass);
+  gap: 15px;
+}
+
+.agenda-info-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agenda-info-date {
+  font-family: var(--font-title);
+  font-size: 14px;
+  color: white;
+  margin-top: 3px;
+}
+
+.agenda-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.agenda-group-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agenda-group-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agenda-group-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agenda-member-tag {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background var(--transition-fast);
+}
+
+.agenda-member-tag i {
+  color: var(--color-cyan);
+}
+
+.agenda-member-tag:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+
 
 
 
