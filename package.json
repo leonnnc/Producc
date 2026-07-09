@@ -1,0 +1,22 @@
+{
+  "name": "produccion",
+  "version": "1.0.0",
+  "description": "Sistema de gestión y coordinación de equipos de producción audiovisual.",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "produccion",
+    "camaras",
+    "switchers"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}
