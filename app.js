@@ -81,6 +81,8 @@ const DOM = {
   activeProgramContainer: document.getElementById('active-program-container'),
   activeAgendaBadge: document.getElementById('active-agenda-badge'),
   activeAgendaContainer: document.getElementById('active-agenda-container'),
+  dashboardTeamBadge: document.getElementById('dashboard-team-badge'),
+  dashboardTeamContainer: document.getElementById('dashboard-team-container'),
   announcementsContainer: document.getElementById('announcements-container'),
   btnOpenAnnModal: document.getElementById('btn-create-announcement-modal'),
   
@@ -638,9 +640,10 @@ async function renderDashboardHome() {
     console.error("Error al calcular estadísticas:", err);
   }
 
-  // Renderizar Programación Activa, Agenda Activa y Anuncios
+  // Renderizar Programación Activa, Agenda Activa, Directorio de Equipo y Anuncios
   renderActiveProgram();
   renderActiveAgenda();
+  renderDashboardTeam();
   renderAnnouncements();
 }
 
@@ -868,6 +871,54 @@ async function renderActiveAgenda() {
     DOM.activeAgendaContainer.innerHTML = '<p class="placeholder-text">Error al cargar el personal asignado.</p>';
   }
 }
+
+// Renderiza el directorio de miembros activos en el Dashboard Home de manera compacta
+async function renderDashboardTeam() {
+  DOM.dashboardTeamContainer.innerHTML = '<div class="loading-spinner"></div>';
+  
+  try {
+    const list = await getUsers(currentUser);
+    // Filtrar solo usuarios aprobados
+    const approved = list.filter(u => u.status === 'approved');
+    DOM.dashboardTeamBadge.textContent = `${approved.length} Miembro${approved.length === 1 ? '' : 's'}`;
+
+    if (approved.length === 0) {
+      DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">No hay miembros aprobados en el equipo.</p>';
+      return;
+    }
+
+    // Ordenar miembros por área
+    approved.sort((a, b) => a.area.localeCompare(b.area));
+
+    DOM.dashboardTeamContainer.innerHTML = `
+      <div class="dashboard-team-list">
+        ${approved.map(u => `
+          <div class="dashboard-team-item">
+            <div class="dashboard-team-avatar">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="dashboard-team-info">
+              <span class="dashboard-team-name">${u.name}</span>
+              <div class="dashboard-team-badges">
+                <span class="dashboard-team-alias">@${u.alias}</span>
+                <span class="dashboard-team-area-badge">${u.area}</span>
+              </div>
+            </div>
+            <div class="dashboard-team-actions">
+              <a href="tel:${u.phone}" class="btn btn-outline btn-xs" title="Llamar"><i class="fa-solid fa-phone"></i></a>
+              <a href="https://wa.me/${u.phone.replace(/[^0-9]/g, '')}" target="_blank" class="btn btn-outline btn-xs" style="color: #25d366; border-color: rgba(37, 211, 102, 0.3);" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+  } catch (err) {
+    console.error("Error al cargar directorio del dashboard:", err);
+    DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">Error al cargar el directorio de miembros.</p>';
+  }
+}
+
 
 
 // Renderiza lista de anuncios en el dashboard

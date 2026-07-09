@@ -286,9 +286,20 @@
             </div>
           </div>
 
-          <!-- Contenido Principal: Programación Activa y Anuncios -->
           <div class="dashboard-main-grid">
             
+            <!-- Bloque de Personal de Servicio Asignado (Agenda) -->
+            <div class="dashboard-col glass-panel active-agenda-card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-calendar-check text-cyan"></i> Personal Asignado al Servicio Activo</h3>
+                <span class="badge badge-active" id="active-agenda-badge">0 Asignados</span>
+              </div>
+              <div class="card-body" id="active-agenda-container">
+                <!-- Se inyecta dinámicamente -->
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+
             <!-- Bloque de Programación Destacada -->
             <div class="dashboard-col glass-panel featured-prog-card">
               <div class="card-header">
@@ -301,13 +312,13 @@
               </div>
             </div>
 
-            <!-- Bloque de Personal de Servicio Asignado -->
-            <div class="dashboard-col glass-panel active-agenda-card">
+            <!-- Bloque de Lista de Usuarios (Directorio) -->
+            <div class="dashboard-col glass-panel dashboard-team-card">
               <div class="card-header">
-                <h3><i class="fa-solid fa-calendar-check text-cyan"></i> Personal Asignado al Servicio Activo</h3>
-                <span class="badge badge-active" id="active-agenda-badge">0 Asignados</span>
+                <h3><i class="fa-solid fa-users text-indigo"></i> Directorio de Miembros Activos</h3>
+                <span class="badge badge-active" id="dashboard-team-badge">0 Miembros</span>
               </div>
-              <div class="card-body" id="active-agenda-container">
+              <div class="card-body" id="dashboard-team-container">
                 <!-- Se inyecta dinámicamente -->
                 <div class="loading-spinner"></div>
               </div>
