@@ -1291,80 +1291,12 @@ input:focus, select:focus, textarea:focus {
    DISEÑO RESPONSIVO (MOBILE FIRST & BREAKPOINTS)
    ========================================================================== */
 
-/* Tablet / Móviles grandes */
-@screen-ipad: 992px;
-
-@media (max-width: 992px) {
-  .sidebar {
-    position: fixed;
-    height: 100vh;
-    left: 0;
-    transform: translateX(-100%);
-    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  
-  #btn-sidebar-toggle {
-    display: flex;
-  }
-  
-  .dashboard-main-grid, .calendar-layout-grid, .admin-console-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  
-  .main-header {
-    padding: 0 20px;
-  }
-  .content-body {
-    padding: 20px;
-  }
-}
-
-/* Dispositivos Móviles pequeños */
-@media (max-width: 576px) {
-  .auth-card {
-    padding: 24px;
-  }
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .flex-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .search-box {
-    width: 100%;
-  }
-  .team-filters {
-    width: 100%;
-    flex-direction: column;
-  }
-  .team-filters select {
-    width: 100%;
-  }
-  .data-table th:nth-child(3), .data-table td:nth-child(3) {
-    display: none; /* Ocultar ubicación en móvil */
-  }
-  .data-table th:nth-child(2), .data-table td:nth-child(2) {
-    display: none; /* Ocultar contacto en móvil */
-  }
-}
-
 /* Helper para ocultar/mostrar elementos de staff */
 .staff-only {
   /* Se maneja dinámicamente vía JS */
 }
 .mobile-only {
   display: none;
-}
-@media (max-width: 992px) {
-  .mobile-only {
-    display: flex;
-  }
 }
 
 /* ==========================================================================
