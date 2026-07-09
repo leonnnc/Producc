@@ -630,10 +630,10 @@ input:focus, select:focus, textarea:focus {
 }
 
 .stat-card {
-  padding: 6px 12px; /* Aún más chato verticalmente */
+  padding: 4px 10px; /* Relleno mínimo absoluto */
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   transition: transform var(--transition-fast);
 }
 .stat-card:hover {
@@ -641,13 +641,13 @@ input:focus, select:focus, textarea:focus {
 }
 
 .stat-icon {
-  width: 28px; /* Icono muy pequeño y compacto */
-  height: 28px;
+  width: 22px; /* Icono micro-compacto */
+  height: 22px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 10px;
 }
 .card-purple .stat-icon { background-color: rgba(139, 92, 246, 0.15); color: #a78bfa; }
 .card-blue .stat-icon { background-color: rgba(59, 130, 246, 0.15); color: #60a5fa; }
@@ -656,10 +656,13 @@ input:focus, select:focus, textarea:focus {
 
 .stat-content {
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Horizontal para eliminar espacio vertical */
+  align-items: center;
+  justify-content: space-between; /* Etiqueta a la izquierda, valor a la derecha */
+  flex-grow: 1;
 }
 .stat-label {
-  font-size: 10px; /* Rótulo más pequeño */
+  font-size: 9px; /* Fuente ultra-compacta */
   color: var(--text-muted);
   font-weight: 500;
   text-transform: uppercase;
@@ -667,7 +670,7 @@ input:focus, select:focus, textarea:focus {
 }
 .stat-value {
   font-family: var(--font-title);
-  font-size: 16px; /* Número más discreto y compacto */
+  font-size: 13px; /* Valor numérico más discreto */
   font-weight: 700;
   color: white;
   margin-top: 0px;
