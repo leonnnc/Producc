@@ -622,9 +622,10 @@ input:focus, select:focus, textarea:focus {
    ========================================================================== */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 220px));
+  grid-template-columns: repeat(4, 1fr) !important; /* Fuerza a que todo esté en una sola fila */
   gap: 16px;
   margin-bottom: 30px;
+  width: 100% !important;
 }
 
 .stat-card {
