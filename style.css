@@ -582,18 +582,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .main-header {
-  height: 70px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  border-radius: 0;
-  border-left: none;
-  border-right: none;
-  border-top: none;
-  padding: 0 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: none !important;
 }
 
 #btn-sidebar-toggle {
@@ -1511,6 +1500,113 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-sub);
   line-height: 1.5;
 }
+
+/* ==========================================================================
+   DISEÑO RESPONSIVO: MENU HORIZONTAL DE ICONOS EN MÓVIL
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* El contenedor principal pasa de grilla de 2 columnas a flex vertical */
+  .app-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* El sidebar se transforma en una barra superior fija horizontal */
+  .sidebar {
+    width: 100% !important;
+    height: 60px !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0 16px !important;
+    border-radius: 0 !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-glass) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    background: rgba(10, 11, 20, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+  }
+
+  /* Ocultar la tarjeta de perfil y el indicador en la barra superior para ahorrar espacio */
+  .sidebar .user-profile-card,
+  .sidebar .system-status-indicator,
+  .sidebar-header button.mobile-only {
+    display: none !important;
+  }
+
+  /* Ajustes del header del sidebar */
+  .sidebar-header {
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Mostrar solo el logo (icono) de la marca y ocultar el texto */
+  .sidebar-header .brand-name {
+    display: none !important;
+  }
+  .sidebar-header .brand-icon {
+    font-size: 22px !important;
+    margin: 0 !important;
+  }
+
+  /* El menú de navegación se vuelve horizontal */
+  .sidebar-nav {
+    margin: 0 !important;
+  }
+  .sidebar-nav ul {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Los items de navegación muestran solo iconos y ocultan el texto */
+  .sidebar-nav .nav-item {
+    padding: 8px 12px !important;
+    margin: 0 !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .sidebar-nav .nav-item span {
+    display: none !important; /* Ocultar textos del menú en móvil */
+  }
+  .sidebar-nav .nav-item i {
+    font-size: 18px !important;
+    margin: 0 !important;
+  }
+
+  /* Ajustes para el contenedor de la sección principal en móvil */
+  .main-layout {
+    flex: 1 !important;
+    padding-top: 0 !important;
+  }
+
+  /* Las grillas del contenido se ajustan a 1 columna en móvil */
+  .dashboard-main-grid, 
+  .calendar-layout-grid, 
+  .admin-console-grid,
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .content-body {
+    padding: 16px !important;
+  }
+  
+  /* Ajustar tamaño de tabla de equipos en móviles */
+  .table-responsive {
+    overflow-x: auto !important;
+  }
+}
+
 
 
 
