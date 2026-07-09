@@ -30,7 +30,7 @@ const DEFAULT_USERS = [
     area: "Otros",
     role: "admin",
     status: "approved",
-    password: "admin" // En producción real usaría hash, para demo es texto plano
+    password: "AdminCDF26" // En producción real usaría hash, para demo es texto plano
   },
   {
     alias: "slider1",
@@ -121,6 +121,14 @@ const DEFAULT_ANNOUNCEMENTS = [
 const initLocalStorage = () => {
   if (!localStorage.getItem("erp_users")) {
     localStorage.setItem("erp_users", JSON.stringify(DEFAULT_USERS));
+  } else {
+    // Si ya existe, nos aseguramos de actualizar la clave de admin si tiene el default anterior
+    const users = JSON.parse(localStorage.getItem("erp_users") || "[]");
+    const adminIdx = users.findIndex(u => u.alias === "admin");
+    if (adminIdx !== -1 && users[adminIdx].password === "admin") {
+      users[adminIdx].password = "AdminCDF26";
+      localStorage.setItem("erp_users", JSON.stringify(users));
+    }
   }
   if (!localStorage.getItem("erp_announcements")) {
     localStorage.setItem("erp_announcements", JSON.stringify(DEFAULT_ANNOUNCEMENTS));
@@ -159,6 +167,17 @@ if (isFirebaseActive) {
         const annCol = collection(firebaseDb, "announcements");
         for (const a of DEFAULT_ANNOUNCEMENTS) {
           await setDoc(doc(firebaseDb, "announcements", a.id), a);
+        }
+      } else {
+        // ACTUALIZACIÓN DE SEGURIDAD: Si ya existe el admin en Firestore con la clave vieja "admin", la actualizamos a "AdminCDF26"
+        const adminDocRef = doc(firebaseDb, "users", "admin");
+        const adminSnapshot = await getDoc(adminDocRef);
+        if (adminSnapshot.exists()) {
+          const adminData = adminSnapshot.data();
+          if (adminData.password === "admin") {
+            await updateDoc(adminDocRef, { password: "AdminCDF26" });
+            console.log("🔥 Contraseña del Administrador actualizada a AdminCDF26 en Firestore.");
+          }
         }
       }
       return { firebaseDb, firebaseAuth, firestore: { collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc } };
