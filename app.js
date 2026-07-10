@@ -973,74 +973,78 @@ async function renderCalendar() {
   DOM.calendarMonthYear.textContent = `${monthNames[month]} ${year}`;
   DOM.calendarDaysGrid.innerHTML = '';
   
-  // Obtener días del mes
-  const firstDayIndex = new Date(year, month, 1).getDay();
-  // Corregir índice para que la semana empiece en Lunes (getDay: 0=Dom, 1=Lun...)
-  // Lun=0, Mar=1, Mié=2, Jue=3, Vie=4, Sáb=5, Dom=6
-  const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-  
+  // Ocultar cabecera de días de la semana, ya que no mostramos una grilla mensual tradicional
+  const weekdaysHeader = document.getElementById('calendar-weekdays-header');
+  if (weekdaysHeader) {
+    weekdaysHeader.style.display = 'none';
+  }
+
+  // Cambiar clases para lista de servicios
+  DOM.calendarDaysGrid.className = 'calendar-days-list';
+
   const lastDayDate = new Date(year, month + 1, 0).getDate();
-  const prevMonthLastDay = new Date(year, month, 0).getDate();
-  
-  // Obtener programaciones subidas para pintar los puntos de carga en el calendario
   const progs = await getProgramSheets();
-
-  // Días del mes anterior
-  for (let i = adjustedFirstDayIndex; i > 0; i--) {
-    const day = prevMonthLastDay - i + 1;
-    createCalendarDay(day, true, false, null);
-  }
-
-  // Días del mes actual
   const today = new Date();
+  
+  let firstSelectableDate = null;
+  let firstSelectableProgs = null;
+
+  const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
   for (let d = 1; d <= lastDayDate; d++) {
-    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const dayOfWeek = new Date(year, month, d).getDay(); // 0 = Domingo, 3 = Miércoles
+    const dateObj = new Date(year, month, d);
+    const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 3 = Miércoles
     
-    const isServiceDay = dayOfWeek === 0 || dayOfWeek === 3;
-    
-    // Filtrar programaciones correspondientes a este día
-    const dayProgs = progs.filter(p => p.date === dateStr);
-    
-    createCalendarDay(d, false, isToday, isServiceDay, dateStr, dayProgs);
+    if (dayOfWeek === 0 || dayOfWeek === 3) {
+      const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const dayProgs = progs.filter(p => p.date === dateStr);
+      const dayName = dayNames[dayOfWeek];
+
+      if (!firstSelectableDate) {
+        firstSelectableDate = dateStr;
+        firstSelectableProgs = dayProgs;
+      }
+
+      createServiceDayCard(d, dayName, isToday, dateStr, dayProgs);
+    }
   }
 
-  // Rellenar con días del mes siguiente para completar la grilla
-  const totalCells = adjustedFirstDayIndex + lastDayDate;
-  const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-  for (let d = 1; d <= remainingCells; d++) {
-    createCalendarDay(d, true, false, null);
+  // Auto-seleccionar el primer día de servicio disponible si no hay seleccionado
+  if (firstSelectableDate) {
+    selectCalendarDay(firstSelectableDate, firstSelectableProgs);
+    // Marcar la primera tarjeta como activa
+    const firstCard = DOM.calendarDaysGrid.querySelector('.service-day-card');
+    if (firstCard) {
+      firstCard.classList.add('active');
+    }
   }
 }
 
-// Crea una casilla del calendario e inyecta sus manejadores de evento click
-function createCalendarDay(dayNum, isOtherMonth, isToday, isServiceDay, dateStr, dayProgs = []) {
+// Crea una tarjeta para el día de servicio en el listado
+function createServiceDayCard(dayNum, dayName, isToday, dateStr, dayProgs = []) {
   const dayEl = document.createElement('div');
-  dayEl.className = 'cal-day';
-  if (isOtherMonth) dayEl.classList.add('other-month');
+  dayEl.className = 'service-day-card';
   if (isToday) dayEl.classList.add('today');
-  if (isServiceDay) dayEl.classList.add('service-day');
   
-  dayEl.innerHTML = `<span class="cal-day-num">${dayNum}</span>`;
+  const totalProgs = dayProgs.length;
   
-  if (isServiceDay && !isOtherMonth) {
-    const dotsEl = document.createElement('div');
-    dotsEl.className = 'cal-dots';
-    
-    // Pintar un puntito por cada archivo subido
-    dayProgs.forEach(() => {
-      const dot = document.createElement('span');
-      dot.className = 'cal-dot';
-      dotsEl.appendChild(dot);
+  dayEl.innerHTML = `
+    <span class="service-card-name">${dayName}</span>
+    <span class="service-card-num">${dayNum}</span>
+    <div class="service-card-info-badges">
+      ${totalProgs > 0 ? `<span class="badge-prog-count"><i class="fa-solid fa-file-invoice"></i> ${totalProgs}</span>` : ''}
+    </div>
+  `;
+  
+  dayEl.addEventListener('click', () => {
+    // Quitar clase activa de todas las tarjetas
+    DOM.calendarDaysGrid.querySelectorAll('.service-day-card').forEach(el => {
+      el.classList.remove('active');
     });
-    dayEl.appendChild(dotsEl);
-    
-    // Evento de clic en día de servicio
-    dayEl.addEventListener('click', () => {
-      selectCalendarDay(dateStr, dayProgs);
-    });
-  }
+    dayEl.classList.add('active');
+    selectCalendarDay(dateStr, dayProgs);
+  });
   
   DOM.calendarDaysGrid.appendChild(dayEl);
 }
