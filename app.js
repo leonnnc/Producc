@@ -510,7 +510,13 @@ function loginSuccess() {
     // Actualizar perfil
     DOM.userDisplayName.textContent = currentUser.name;
     DOM.userRoleBadge.textContent = getRoleLabel(currentUser.role);
-    DOM.userAreaBadge.textContent = currentUser.area;
+    
+    if (currentUser.role === 'admin') {
+      DOM.userAreaBadge.classList.add('hidden');
+    } else {
+      DOM.userAreaBadge.classList.remove('hidden');
+      DOM.userAreaBadge.textContent = currentUser.area;
+    }
     
     // Limpiar navegación activa
     DOM.navItems.forEach(i => i.classList.remove('active'));
