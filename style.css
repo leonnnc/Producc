@@ -858,19 +858,17 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   padding: 6px;
-  cursor: pointer;
+  cursor: default; /* Por defecto no interactivo */
   position: relative;
   transition: var(--transition-fast);
-}
-.cal-day:hover {
-  background-color: var(--bg-hover);
+  opacity: 0.4; /* Muted para días sin servicios */
 }
 .cal-day-num {
   font-size: 13px;
   font-weight: 500;
 }
 .cal-day.other-month {
-  opacity: 0.25;
+  opacity: 0.15;
 }
 .cal-day.today {
   border-color: var(--color-cyan);
@@ -885,9 +883,12 @@ input:focus, select:focus, textarea:focus {
 .cal-day.service-day {
   border-color: rgba(139, 92, 246, 0.4);
   background-color: rgba(139, 92, 246, 0.05);
+  cursor: pointer; /* Interactivo */
+  opacity: 1; /* Resaltado */
 }
 .cal-day.service-day:hover {
   background-color: rgba(139, 92, 246, 0.12);
+  transform: translateY(-2px);
 }
 .cal-day.service-day .cal-day-num {
   color: #c084fc;

@@ -413,12 +413,22 @@ function setupEventListeners() {
     clearFileSelection();
   });
 
-  // Enviar formulario de subida
   DOM.uploadProgramForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!selectedFileBase64) {
       alert("Por favor selecciona un archivo.");
       return;
+    }
+
+    // Validar que la fecha sea Domingo o Miércoles
+    const selectedDateVal = DOM.uploadDate.value;
+    if (selectedDateVal) {
+      const dateObj = new Date(selectedDateVal + 'T00:00:00');
+      const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 3 = Miércoles
+      if (dayOfWeek !== 0 && dayOfWeek !== 3) {
+        alert("Error: Las programaciones solo se pueden subir para días Domingo o Miércoles.");
+        return;
+      }
     }
 
     const progData = {
