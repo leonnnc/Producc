@@ -90,9 +90,12 @@ const DOM = {
   btnPrevMonth: document.getElementById('btn-prev-month'),
   btnNextMonth: document.getElementById('btn-next-month'),
   calendarMonthYear: document.getElementById('calendar-month-year'),
-  calendarDaysGrid: document.getElementById('calendar-days-grid'),
-  selectedDayTitle: document.getElementById('selected-day-title'),
-  selectedDayContent: document.getElementById('selected-day-content'),
+  sundayMatrixTable: document.getElementById('sunday-matrix-table'),
+  wednesdayMatrixTable: document.getElementById('wednesday-matrix-table'),
+  serviceReserveModal: document.getElementById('service-reserve-modal'),
+  btnCloseReserveModal: document.getElementById('btn-close-reserve-modal'),
+  reserveModalTitle: document.getElementById('reserve-modal-title'),
+  reserveModalBodyContent: document.getElementById('reserve-modal-body-content'),
   
   // Módulo: Programaciones
   uploadPanelContainer: document.getElementById('upload-panel-container'),
@@ -464,6 +467,9 @@ function setupEventListeners() {
   });
   DOM.btnCloseViewerModal.addEventListener('click', () => {
     DOM.viewerModal.classList.add('hidden');
+  });
+  DOM.btnCloseReserveModal.addEventListener('click', () => {
+    DOM.serviceReserveModal.classList.add('hidden');
   });
 
   // Publicar Anuncio
@@ -960,6 +966,9 @@ async function renderAnnouncements() {
 // ==========================================================================
 // RENDERIZADO: AGENDA / CALENDARIO
 // ==========================================================================
+// ==========================================================================
+// RENDERIZADO: AGENDA / MATRIX TABLE
+// ==========================================================================
 async function renderCalendar() {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -971,222 +980,209 @@ async function renderCalendar() {
   ];
   
   DOM.calendarMonthYear.textContent = `${monthNames[month]} ${year}`;
-  DOM.calendarDaysGrid.innerHTML = '';
   
-  // Ocultar cabecera de días de la semana, ya que no mostramos una grilla mensual tradicional
-  const weekdaysHeader = document.getElementById('calendar-weekdays-header');
-  if (weekdaysHeader) {
-    weekdaysHeader.style.display = 'none';
-  }
-
-  // Cambiar clases para vista de filas
-  DOM.calendarDaysGrid.className = 'calendar-agenda-rows-container';
-  DOM.calendarDaysGrid.innerHTML = `
-    <div class="calendar-agenda-rows">
-      <!-- Domingos -->
-      <div class="agenda-row-section">
-        <span class="agenda-row-title"><i class="fa-solid fa-calendar-day" style="color:#c084fc;"></i> Domingos</span>
-        <div class="agenda-row-cards" id="sundays-row-cards"></div>
-      </div>
-      
-      <!-- Miércoles -->
-      <div class="agenda-row-section" style="margin-top: 15px;">
-        <span class="agenda-row-title"><i class="fa-solid fa-calendar-day" style="color:#22d3ee;"></i> Miércoles</span>
-        <div class="agenda-row-cards" id="wednesdays-row-cards"></div>
-      </div>
-    </div>
-  `;
-
-  const sundaysRow = document.getElementById('sundays-row-cards');
-  const wednesdaysRow = document.getElementById('wednesdays-row-cards');
-
+  // Obtener Domingos y Miércoles de este mes
   const lastDayDate = new Date(year, month + 1, 0).getDate();
-  const progs = await getProgramSheets();
-  const today = new Date();
+  const sundays = [];
+  const wednesdays = [];
   
-  let firstSelectableDate = null;
-  let firstSelectableProgs = null;
-
   const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const monthShorts = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
   for (let d = 1; d <= lastDayDate; d++) {
     const dateObj = new Date(year, month, d);
-    const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 3 = Miércoles
-    
-    if (dayOfWeek === 0 || dayOfWeek === 3) {
-      const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayProgs = progs.filter(p => p.date === dateStr);
-      const dayName = dayNames[dayOfWeek];
+    const dayOfWeek = dateObj.getDay();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const formattedDate = `${dayNames[dayOfWeek]} ${d} de ${monthNames[month]}`;
 
-      if (!firstSelectableDate) {
-        firstSelectableDate = dateStr;
-        firstSelectableProgs = dayProgs;
-      }
-
-      createRowServiceDayCard(d, dayName, isToday, dateStr, dayProgs, dayOfWeek === 0 ? sundaysRow : wednesdaysRow);
+    if (dayOfWeek === 0) {
+      sundays.push({
+        dayNum: d,
+        monthShort: monthShorts[month],
+        dateStr: dateStr,
+        formattedDate: formattedDate
+      });
+    } else if (dayOfWeek === 3) {
+      wednesdays.push({
+        dayNum: d,
+        monthShort: monthShorts[month],
+        dateStr: dateStr,
+        formattedDate: formattedDate
+      });
     }
   }
 
-  // Auto-seleccionar el primer día de servicio disponible si no hay seleccionado
-  if (firstSelectableDate) {
-    selectCalendarDay(firstSelectableDate, firstSelectableProgs);
-    // Marcar la primera tarjeta como activa
-    const firstCard = DOM.calendarDaysGrid.querySelector('.service-day-card');
-    if (firstCard) {
-      firstCard.classList.add('active');
-    }
-  }
-}
-
-// Crea una tarjeta para el día de servicio y la añade a la fila correspondiente (Domingo o Miércoles)
-function createRowServiceDayCard(dayNum, dayName, isToday, dateStr, dayProgs, targetRowContainer) {
-  const dayEl = document.createElement('div');
-  dayEl.className = 'service-day-card';
-  if (isToday) dayEl.classList.add('today');
-  
-  const totalProgs = dayProgs.length;
-  
-  dayEl.innerHTML = `
-    <span class="service-card-name">${dayName}</span>
-    <span class="service-card-num">${dayNum}</span>
-    <div class="service-card-info-badges">
-      ${totalProgs > 0 ? `<span class="badge-prog-count"><i class="fa-solid fa-file-invoice"></i> ${totalProgs}</span>` : ''}
-    </div>
+  // --- RENDERIZAR TABLA DE DOMINGOS ---
+  const sundaySlots = ["08:00 AM", "11:00 AM", "01:00 PM", "07:00 PM"];
+  let sundayHtml = `
+    <thead>
+      <tr>
+        <th>HORARIO</th>
+        ${sundays.map(s => `<th>${s.dayNum} ${s.monthShort}<br><small>DOMINGO</small></th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
   `;
-  
-  dayEl.addEventListener('click', () => {
-    // Quitar clase activa de todas las tarjetas en todo el contenedor
-    DOM.calendarDaysGrid.querySelectorAll('.service-day-card').forEach(el => {
-      el.classList.remove('active');
-    });
-    dayEl.classList.add('active');
-    selectCalendarDay(dateStr, dayProgs);
+
+  for (const slot of sundaySlots) {
+    sundayHtml += `
+      <tr>
+        <td class="time-header-cell">${slot}</td>
+    `;
+    for (const s of sundays) {
+      const signups = await getServiceSignups(s.dateStr, slot);
+      const isSignedUp = signups.some(x => x.userAlias === currentUser.alias);
+      
+      sundayHtml += `
+        <td class="reserve-matrix-cell" data-date="${s.dateStr}" data-slot="${slot}" data-formatted="${s.formattedDate}">
+          <button class="btn btn-xs ${isSignedUp ? 'btn-success' : 'btn-outline'} btn-matrix-reserve">
+            ${isSignedUp ? '<i class="fa-solid fa-user-check"></i> Reservado' : 'Reservar'}
+          </button>
+          ${signups.length > 0 ? `<span class="cell-signup-count"><i class="fa-solid fa-user"></i> ${signups.length}</span>` : ''}
+        </td>
+      `;
+    }
+    sundayHtml += `</tr>`;
+  }
+  sundayHtml += `</tbody>`;
+  DOM.sundayMatrixTable.innerHTML = sundayHtml;
+
+  // --- RENDERIZAR TABLA DE MIÉRCOLES ---
+  const wednesdaySlots = ["07:30 PM"];
+  let wednesdayHtml = `
+    <thead>
+      <tr>
+        <th>HORARIO</th>
+        ${wednesdays.map(w => `<th>${w.dayNum} ${w.monthShort}<br><small>MIÉRCOLES</small></th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  for (const slot of wednesdaySlots) {
+    wednesdayHtml += `
+      <tr>
+        <td class="time-header-cell">${slot}</td>
+    `;
+    for (const w of wednesdays) {
+      const signups = await getServiceSignups(w.dateStr, slot);
+      const isSignedUp = signups.some(x => x.userAlias === currentUser.alias);
+      
+      wednesdayHtml += `
+        <td class="reserve-matrix-cell" data-date="${w.dateStr}" data-slot="${slot}" data-formatted="${w.formattedDate}">
+          <button class="btn btn-xs ${isSignedUp ? 'btn-success' : 'btn-outline'} btn-matrix-reserve">
+            ${isSignedUp ? '<i class="fa-solid fa-user-check"></i> Reservado' : 'Reservar'}
+          </button>
+          ${signups.length > 0 ? `<span class="cell-signup-count"><i class="fa-solid fa-user"></i> ${signups.length}</span>` : ''}
+        </td>
+      `;
+    }
+    wednesdayHtml += `</tr>`;
+  }
+  wednesdayHtml += `</tbody>`;
+  DOM.wednesdayMatrixTable.innerHTML = wednesdayHtml;
+
+  // --- ASOCIAR EVENTOS DE CLICK A LAS CELDAS DE LAS TABLAS ---
+  const handleCellClick = (e) => {
+    // Si hicieron clic en el botón o en la celda, abrimos el modal
+    const cell = e.currentTarget;
+    const dateStr = cell.getAttribute('data-date');
+    const slot = cell.getAttribute('data-slot');
+    const formatted = cell.getAttribute('data-formatted');
+    openReserveModal(dateStr, slot, formatted);
+  };
+
+  DOM.sundayMatrixTable.querySelectorAll('.reserve-matrix-cell').forEach(cell => {
+    cell.addEventListener('click', handleCellClick);
   });
-  
-  targetRowContainer.appendChild(dayEl);
+  DOM.wednesdayMatrixTable.querySelectorAll('.reserve-matrix-cell').forEach(cell => {
+    cell.addEventListener('click', handleCellClick);
+  });
 }
 
-// Muestra el detalle del día de servicio seleccionado en el calendario
-async function selectCalendarDay(dateStr, dayProgs) {
-  selectedDate = dateStr;
-  
-  const parsedDate = new Date(dateStr + 'T00:00:00');
-  const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${parsedDate.toLocaleDateString('es-ES', { month: 'long' })}`;
-  
-  DOM.selectedDayTitle.textContent = formattedDate;
-  DOM.selectedDayContent.innerHTML = '<div class="loading-spinner"></div>';
-  
-  const dayOfWeek = parsedDate.getDay(); // 0 = Domingo, 3 = Miércoles
-  let slots = [];
-  
-  if (dayOfWeek === 0) {
-    slots = ["08:00 AM", "11:00 AM", "01:00 PM", "07:00 PM"];
-  } else if (dayOfWeek === 3) {
-    slots = ["07:30 PM"];
-  }
-  
-  const listEl = document.createElement('div');
-  listEl.className = 'service-list';
-  
-  for (const slot of slots) {
-    const associatedProg = dayProgs.find(p => p.time === slot);
-    const itemEl = document.createElement('div');
-    itemEl.className = 'service-item';
-    
-    let progHtml = '';
-    if (associatedProg) {
-      progHtml = `
-        <div class="service-sheet-preview-box">
-          <span style="font-size:12px; color:var(--text-sub);"><i class="fa-regular fa-file"></i> ${associatedProg.fileName}</span>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-outline btn-xs btn-view-cell" data-id="${associatedProg.id}"><i class="fa-regular fa-eye"></i></button>
-            <a href="${associatedProg.fileData}" download class="btn btn-primary btn-xs"><i class="fa-solid fa-download"></i></a>
-          </div>
+// Abre el modal detallado para ver quién reservó y gestionar la reserva propia
+async function openReserveModal(dateStr, slot, formattedDate) {
+  DOM.reserveModalTitle.textContent = `${formattedDate} - ${slot}`;
+  DOM.reserveModalBodyContent.innerHTML = '<div class="loading-spinner"></div>';
+  DOM.serviceReserveModal.classList.remove('hidden');
+
+  try {
+    const signups = await getServiceSignups(dateStr, slot);
+    const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
+
+    // Agrupar por área
+    const groups = {};
+    signups.forEach(s => {
+      if (!groups[s.userArea]) groups[s.userArea] = [];
+      groups[s.userArea].push(s);
+    });
+
+    let signupsHtml = '';
+    if (signups.length === 0) {
+      signupsHtml = `
+        <div style="text-align: center; padding: 20px 0;">
+          <p class="placeholder-text" style="font-size:12px;"><i class="fa-solid fa-users-slash" style="font-size:24px; margin-bottom:8px; display:block; color:var(--text-muted);"></i> Nadie se ha anotado en este turno aún.</p>
         </div>
       `;
     } else {
-      const isStaff = currentUser.role === 'admin' || currentUser.role === 'slider';
-      progHtml = isStaff 
-        ? `<button class="btn btn-outline btn-xs btn-block btn-direct-upload" data-time="${slot}" style="margin-top:10px; border-style:dashed;">
-             <i class="fa-solid fa-plus"></i> Cargar Programación
-           </button>`
-        : `<p class="placeholder-text" style="padding:10px 0 0 0; font-size:11px; text-align:left;">Sin programar.</p>`;
+      signupsHtml = `
+        <div class="agenda-group-list" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
+          ${Object.keys(groups).map(area => `
+            <div class="agenda-group-area" style="margin-bottom: 12px;">
+              <span class="agenda-group-title" style="font-size: 9px; font-weight:600; color:var(--text-muted); text-transform:uppercase;"><i class="fa-solid fa-people-group"></i> ${area}</span>
+              <div class="agenda-group-members" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+                ${groups[area].map(m => `
+                  <div class="agenda-member-tag" style="font-size: 11px; padding: 4px 8px; background:rgba(255,255,255,0.04); border-radius:4px; border:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:5px; color:white;">
+                    <i class="fa-solid fa-user-check" style="color:var(--color-cyan);"></i>
+                    <span>${m.userName} <small style="color:var(--text-muted);">(${m.userAlias})</small></span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
     }
 
-    itemEl.innerHTML = `
-      <div class="service-item-header">
-        <span class="service-time-badge"><i class="fa-regular fa-clock"></i> ${slot}</span>
-        ${associatedProg ? `<span class="badge badge-success">Programado</span>` : `<span class="badge badge-status">Pendiente</span>`}
-      </div>
-      <p style="font-size:12px; color:var(--text-sub);">Servicio general de adoración y palabra.</p>
-      ${progHtml}
-    `;
-
-    // Escuchadores dinámicos
-    if (associatedProg) {
-      itemEl.querySelector('.btn-view-cell').addEventListener('click', () => {
-        openFileViewer(associatedProg);
-      });
-    } else {
-      const uploadBtn = itemEl.querySelector('.btn-direct-upload');
-      if (uploadBtn) {
-        uploadBtn.addEventListener('click', (e) => {
-          const timeSlot = e.currentTarget.getAttribute('data-time');
-          goToUploadModule(dateStr, timeSlot);
-        });
-      }
-    }
-
-    // --- SECCIÓN DE AGENDA / PERSONAL ASIGNADO ---
-    try {
-      const signups = await getServiceSignups(dateStr, slot);
-      const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
-      
-      const agendaContainer = document.createElement('div');
-      agendaContainer.className = 'service-item-agenda-container';
-      
-      const signupsHtml = signups.length === 0 
-        ? `<span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-users-slash"></i> Sin personal anotado</span>`
-        : `<span style="font-size:11px; color:var(--text-sub); line-height: 1.4;"><i class="fa-solid fa-user-check text-cyan"></i> ${signups.map(s => `${s.userName} (${s.userArea})`).join(', ')}</span>`;
-      
-      agendaContainer.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05); gap:10px;">
-          ${signupsHtml}
-          <button class="btn btn-outline btn-xs btn-toggle-slot-signup" style="flex-shrink:0;">
-            ${isSignedUp ? '<i class="fa-solid fa-user-minus text-red"></i> Quitarme' : '<i class="fa-solid fa-user-plus text-cyan"></i> Anotarme'}
+    DOM.reserveModalBodyContent.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid var(--border-glass);">
+          <span style="font-size:12px; color:white; font-weight:500;">Mi Reservación:</span>
+          <button id="btn-modal-reserve-action" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
+            ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Cancelar Reserva' : '<i class="fa-solid fa-user-plus"></i> Reservar Lugar'}
           </button>
         </div>
-      `;
+        
+        <div>
+          <h4 style="font-size:12px; font-weight:600; color:white; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px; margin-bottom:10px;"><i class="fa-solid fa-users"></i> Personal Reservado:</h4>
+          ${signupsHtml}
+        </div>
+      </div>
+    `;
 
-      // Escuchador para anotarse en el slot
-      agendaContainer.querySelector('.btn-toggle-slot-signup').addEventListener('click', async () => {
-        try {
-          if (isSignedUp) {
-            await cancelSignupForService(dateStr, slot, currentUser.alias);
-          } else {
-            await signupForService(dateStr, slot, currentUser);
-          }
-          // Recargar el detalle del día
-          selectCalendarDay(dateStr, dayProgs);
-          // Recargar la agenda en el dashboard también
-          renderActiveAgenda();
-        } catch (err) {
-          alert("Error al guardar la asignación: " + err.message);
+    // Escuchador del botón de reserva en el modal
+    document.getElementById('btn-modal-reserve-action').addEventListener('click', async () => {
+      try {
+        if (isSignedUp) {
+          await cancelSignupForService(dateStr, slot, currentUser.alias);
+        } else {
+          await signupForService(dateStr, slot, currentUser);
         }
-      });
+        // Volver a cargar el modal
+        openReserveModal(dateStr, slot, formattedDate);
+        // Actualizar la grilla principal
+        renderCalendar();
+        // Actualizar la agenda activa del dashboard
+        renderActiveAgenda();
+      } catch (err) {
+        alert("Error al procesar la reserva: " + err.message);
+      }
+    });
 
-      itemEl.appendChild(agendaContainer);
-    } catch (err) {
-      console.error("Error al cargar agenda para slot:", err);
-    }
-    
-    listEl.appendChild(itemEl);
+  } catch (err) {
+    console.error("Error al abrir modal de reservas:", err);
+    DOM.reserveModalBodyContent.innerHTML = '<p class="placeholder-text">Error al cargar datos del servicio.</p>';
   }
-  
-  DOM.selectedDayContent.innerHTML = '';
-  DOM.selectedDayContent.appendChild(listEl);
 }
 
 // Redirecciona al panel de subida de archivos pre-rellenando el formulario

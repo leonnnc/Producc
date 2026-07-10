@@ -1797,127 +1797,139 @@ input:focus, select:focus, textarea:focus {
 /* ==========================================================================
    VISTA DE AGENDA: FILAS DE DIAS DE SERVICIO (DOMINGOS ARRIBA, MIERCOLES ABAJO)
    ========================================================================== */
-.calendar-agenda-rows-container {
+/* ==========================================================================
+   VISTA DE AGENDA: MATRIZ DE SERVICIOS (DOMINGOS Y MIÉRCOLES)
+   ========================================================================== */
+.agenda-layout-full {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  margin-top: 15px;
-  max-height: 520px;
-  overflow-y: auto;
-  padding: 4px;
 }
 
-.calendar-agenda-rows {
+.agenda-controls-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.agenda-row-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.agenda-row-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 15px 20px;
 }
 
-.agenda-row-cards {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto; /* Permite scroll horizontal si no entran */
-  padding: 4px 2px;
-}
-
-/* Scrollbar horizontal fino para las filas */
-.agenda-row-cards::-webkit-scrollbar {
-  height: 4px;
-}
-.agenda-row-cards::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.01);
-}
-.agenda-row-cards::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-}
-
-.calendar-agenda-rows-container .service-day-card {
-  min-width: 95px;
-  max-width: 120px;
-  flex: 1;
-}
-
-.service-day-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.service-day-card:hover {
-  background: rgba(139, 92, 246, 0.08);
-  border-color: rgba(139, 92, 246, 0.3);
-  transform: translateY(-2px);
-}
-
-.service-day-card.active {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: #a78bfa;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
-}
-
-.service-day-card.today {
-  border-color: var(--color-cyan);
-  background-color: rgba(6, 182, 212, 0.05);
-}
-
-.service-card-name {
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-}
-
-.service-day-card.active .service-card-name {
-  color: #c084fc;
-}
-
-.service-card-num {
-  font-family: var(--font-title);
-  font-size: 22px;
+.agenda-header-info h3 {
+  font-size: 18px;
   font-weight: 700;
   color: white;
 }
 
-.service-card-info-badges {
-  display: flex;
-  gap: 4px;
-  margin-top: 2px;
+.agenda-table-card {
+  padding: 0;
+  overflow: hidden;
 }
 
-.badge-prog-count {
-  font-size: 8px;
-  background: rgba(6, 182, 212, 0.15);
-  color: #22d3ee;
-  padding: 1px 5px;
-  border-radius: 8px;
+.agenda-table-card .card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.agenda-table-card .card-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+.table-responsive-x {
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* Custom scrollbar para la tabla responsiva */
+.table-responsive-x::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive-x::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.table-responsive-x::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.agenda-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.agenda-matrix-table th {
+  padding: 12px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.01);
+  white-space: nowrap;
+}
+
+.agenda-matrix-table th small {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
+.agenda-matrix-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+}
+
+.agenda-matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.time-header-cell {
+  background: rgba(255, 255, 255, 0.02);
+  font-weight: 700;
+  color: white !important;
+  font-size: 13px;
+  text-align: center;
+  width: 90px;
+  min-width: 90px;
+}
+
+.reserve-matrix-cell {
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition-fast);
+  min-width: 110px;
+}
+
+.reserve-matrix-cell:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.btn-matrix-reserve {
+  padding: 5px 12px;
+  font-size: 11px;
+  border-radius: 6px;
+  font-weight: 600;
+  pointer-events: none; /* Dejamos que el clic lo maneje la celda entera */
+}
+
+.cell-signup-count {
+  display: block;
+  font-size: 9px;
+  color: var(--color-cyan);
+  margin-top: 5px;
   font-weight: 500;
 }
+
 
 
 

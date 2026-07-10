@@ -333,7 +333,6 @@
                 </button>
               </div>
               <div class="card-body" id="announcements-container">
-                <!-- Se inyecta dinámicamente -->
                 <div class="loading-spinner"></div>
               </div>
             </div>
@@ -343,40 +342,45 @@
 
         <!-- ==================== SECCIÓN: AGENDA Y SERVICIOS ==================== -->
         <section id="sec-agenda" class="content-section hidden">
-          <div class="calendar-layout-grid">
+          <div class="agenda-layout-full">
             
-            <!-- Calendario -->
-            <div class="glass-panel calendar-wrapper">
+            <!-- Controles de Mes superior -->
+            <div class="glass-panel agenda-controls-wrapper">
+              <div class="agenda-header-info">
+                <h3>Agenda de Servicios</h3>
+                <p class="placeholder-text" style="padding:0; margin-top:2px;">Selecciona los servicios en los que participarás</p>
+              </div>
               <div class="calendar-header-controls">
                 <button id="btn-prev-month" class="btn btn-outline btn-xs"><i class="fa-solid fa-chevron-left"></i></button>
                 <h3 id="calendar-month-year">Julio 2026</h3>
                 <button id="btn-next-month" class="btn btn-outline btn-xs"><i class="fa-solid fa-chevron-right"></i></button>
               </div>
-              
-              <div class="calendar-weekdays">
-                <div>Lun</div>
-                <div>Mar</div>
-                <div>Mié</div>
-                <div>Jue</div>
-                <div>Vie</div>
-                <div>Sáb</div>
-                <div>Dom</div>
+            </div>
+
+            <!-- Tabla de Servicios de Domingo -->
+            <div class="glass-panel agenda-table-card" style="margin-top: 15px;">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-sun text-yellow"></i> Servicios de Domingo</h3>
               </div>
-              
-              <div class="calendar-days" id="calendar-days-grid">
-                <!-- Días inyectados por JavaScript -->
+              <div class="card-body table-responsive-x">
+                <table class="agenda-matrix-table" id="sunday-matrix-table">
+                  <!-- Generado por JS -->
+                </table>
               </div>
             </div>
 
-            <!-- Panel de Detalle del Día Seleccionado -->
-            <div class="glass-panel day-detail-wrapper">
+            <!-- Tabla de Servicios de Miércoles -->
+            <div class="glass-panel agenda-table-card" style="margin-top: 15px;">
               <div class="card-header">
-                <h3 id="selected-day-title">Selecciona un día</h3>
+                <h3><i class="fa-solid fa-moon text-purple"></i> Servicios de Miércoles</h3>
               </div>
-              <div class="card-body" id="selected-day-content">
-                <p class="placeholder-text">Haz clic en un día del calendario resaltado en color morado para ver los servicios programados.</p>
+              <div class="card-body table-responsive-x">
+                <table class="agenda-matrix-table" id="wednesday-matrix-table">
+                  <!-- Generado por JS -->
+                </table>
               </div>
             </div>
+
           </div>
         </section>
 
@@ -567,6 +571,19 @@
       </div>
       <div class="modal-body centered-content" id="viewer-modal-body">
         <!-- Contenido dinámico (iframe para PDF o img para imagen) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle de Reservas del Servicio -->
+  <div id="service-reserve-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3 id="reserve-modal-title">Detalle del Servicio</h3>
+        <button id="btn-close-reserve-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="reserve-modal-body-content">
+        <!-- Inyectado dinámicamente -->
       </div>
     </div>
   </div>
