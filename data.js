@@ -704,22 +704,9 @@ export async function loginUserWithGoogle() {
     }
   }
 
-  // MODO LOCALSTORAGE (Fallback)
+  // MODO LOCALSTORAGE (Fallback) - Acceso Directo de Administrador (Sin simulación)
   return new Promise((resolve, reject) => {
-    const selectedEmail = prompt(
-      "SIMULACIÓN DE GOOGLE SIGN-IN\n\n" +
-      "Escribe un correo electrónico para simular tu inicio de sesión de Google:\n" +
-      "- Escribe 'leonn.cruz@produccion.com' para simular Admin.\n" +
-      "- Escribe 'sofia.cam@produccion.com' para simular Líder de Cámaras.\n" +
-      "- O escribe cualquier otro correo para simular el registro de un miembro nuevo."
-    );
-
-    if (!selectedEmail) {
-      reject(new Error("Inicio de sesión con Google cancelado."));
-      return;
-    }
-
-    const email = selectedEmail.trim().toLowerCase();
+    const email = "leonn.cruz@produccion.com";
     
     // Validar dominio de correo
     if (!email.endsWith("@produccion.com")) {
