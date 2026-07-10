@@ -1795,29 +1795,64 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ==========================================================================
-   VISTA DE AGENDA: LISTADO DE DIAS DE SERVICIO (DOM/MIE)
+   VISTA DE AGENDA: FILAS DE DIAS DE SERVICIO (DOMINGOS ARRIBA, MIERCOLES ABAJO)
    ========================================================================== */
-.calendar-days-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-  gap: 10px;
+.calendar-agenda-rows-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
   margin-top: 15px;
-  max-height: 480px;
+  max-height: 520px;
   overflow-y: auto;
   padding: 4px;
 }
 
-/* Scrollbar para el listado de días */
-.calendar-days-list::-webkit-scrollbar {
-  width: 6px;
+.calendar-agenda-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.calendar-days-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 3px;
+
+.agenda-row-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.calendar-days-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+
+.agenda-row-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agenda-row-cards {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto; /* Permite scroll horizontal si no entran */
+  padding: 4px 2px;
+}
+
+/* Scrollbar horizontal fino para las filas */
+.agenda-row-cards::-webkit-scrollbar {
+  height: 4px;
+}
+.agenda-row-cards::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.01);
+}
+.agenda-row-cards::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.calendar-agenda-rows-container .service-day-card {
+  min-width: 95px;
+  max-width: 120px;
+  flex: 1;
 }
 
 .service-day-card {

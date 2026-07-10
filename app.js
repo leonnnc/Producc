@@ -979,8 +979,26 @@ async function renderCalendar() {
     weekdaysHeader.style.display = 'none';
   }
 
-  // Cambiar clases para lista de servicios
-  DOM.calendarDaysGrid.className = 'calendar-days-list';
+  // Cambiar clases para vista de filas
+  DOM.calendarDaysGrid.className = 'calendar-agenda-rows-container';
+  DOM.calendarDaysGrid.innerHTML = `
+    <div class="calendar-agenda-rows">
+      <!-- Domingos -->
+      <div class="agenda-row-section">
+        <span class="agenda-row-title"><i class="fa-solid fa-calendar-day" style="color:#c084fc;"></i> Domingos</span>
+        <div class="agenda-row-cards" id="sundays-row-cards"></div>
+      </div>
+      
+      <!-- Miércoles -->
+      <div class="agenda-row-section" style="margin-top: 15px;">
+        <span class="agenda-row-title"><i class="fa-solid fa-calendar-day" style="color:#22d3ee;"></i> Miércoles</span>
+        <div class="agenda-row-cards" id="wednesdays-row-cards"></div>
+      </div>
+    </div>
+  `;
+
+  const sundaysRow = document.getElementById('sundays-row-cards');
+  const wednesdaysRow = document.getElementById('wednesdays-row-cards');
 
   const lastDayDate = new Date(year, month + 1, 0).getDate();
   const progs = await getProgramSheets();
@@ -1006,7 +1024,7 @@ async function renderCalendar() {
         firstSelectableProgs = dayProgs;
       }
 
-      createServiceDayCard(d, dayName, isToday, dateStr, dayProgs);
+      createRowServiceDayCard(d, dayName, isToday, dateStr, dayProgs, dayOfWeek === 0 ? sundaysRow : wednesdaysRow);
     }
   }
 
@@ -1021,8 +1039,8 @@ async function renderCalendar() {
   }
 }
 
-// Crea una tarjeta para el día de servicio en el listado
-function createServiceDayCard(dayNum, dayName, isToday, dateStr, dayProgs = []) {
+// Crea una tarjeta para el día de servicio y la añade a la fila correspondiente (Domingo o Miércoles)
+function createRowServiceDayCard(dayNum, dayName, isToday, dateStr, dayProgs, targetRowContainer) {
   const dayEl = document.createElement('div');
   dayEl.className = 'service-day-card';
   if (isToday) dayEl.classList.add('today');
@@ -1038,7 +1056,7 @@ function createServiceDayCard(dayNum, dayName, isToday, dateStr, dayProgs = []) 
   `;
   
   dayEl.addEventListener('click', () => {
-    // Quitar clase activa de todas las tarjetas
+    // Quitar clase activa de todas las tarjetas en todo el contenedor
     DOM.calendarDaysGrid.querySelectorAll('.service-day-card').forEach(el => {
       el.classList.remove('active');
     });
@@ -1046,7 +1064,7 @@ function createServiceDayCard(dayNum, dayName, isToday, dateStr, dayProgs = []) 
     selectCalendarDay(dateStr, dayProgs);
   });
   
-  DOM.calendarDaysGrid.appendChild(dayEl);
+  targetRowContainer.appendChild(dayEl);
 }
 
 // Muestra el detalle del día de servicio seleccionado en el calendario
