@@ -1930,6 +1930,15 @@ input:focus, select:focus, textarea:focus {
   font-weight: 500;
 }
 
+.reserve-matrix-cell.past-cell {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.reserve-matrix-cell.past-cell .cell-signup-count {
+  color: var(--text-muted);
+}
+
+
 
 
 

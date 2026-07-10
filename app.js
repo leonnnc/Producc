@@ -1024,6 +1024,9 @@ async function renderCalendar() {
     <tbody>
   `;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   for (const slot of sundaySlots) {
     sundayHtml += `
       <tr>
@@ -1033,11 +1036,28 @@ async function renderCalendar() {
       const signups = await getServiceSignups(s.dateStr, slot);
       const isSignedUp = signups.some(x => x.userAlias === currentUser.alias);
       
-      sundayHtml += `
-        <td class="reserve-matrix-cell" data-date="${s.dateStr}" data-slot="${slot}" data-formatted="${s.formattedDate}">
+      const dateObj = new Date(s.dateStr + 'T00:00:00');
+      dateObj.setHours(0, 0, 0, 0);
+      const isPast = dateObj < today;
+
+      let buttonHtml = '';
+      if (isPast) {
+        buttonHtml = `
+          <button class="btn btn-xs btn-matrix-reserve" disabled style="background:rgba(255,255,255,0.02); border-color:rgba(255,255,255,0.05); color:var(--text-muted); opacity:0.6;">
+            ${isSignedUp ? '<i class="fa-solid fa-user-check"></i> Reservado' : 'Finalizado'}
+          </button>
+        `;
+      } else {
+        buttonHtml = `
           <button class="btn btn-xs ${isSignedUp ? 'btn-success' : 'btn-outline'} btn-matrix-reserve">
             ${isSignedUp ? '<i class="fa-solid fa-user-check"></i> Reservado' : 'Reservar'}
           </button>
+        `;
+      }
+
+      sundayHtml += `
+        <td class="reserve-matrix-cell ${isPast ? 'past-cell' : ''}" data-date="${s.dateStr}" data-slot="${slot}" data-formatted="${s.formattedDate}">
+          ${buttonHtml}
           ${signups.length > 0 ? `<span class="cell-signup-count"><i class="fa-solid fa-user"></i> ${signups.length}</span>` : ''}
         </td>
       `;
@@ -1068,11 +1088,28 @@ async function renderCalendar() {
       const signups = await getServiceSignups(w.dateStr, slot);
       const isSignedUp = signups.some(x => x.userAlias === currentUser.alias);
       
-      wednesdayHtml += `
-        <td class="reserve-matrix-cell" data-date="${w.dateStr}" data-slot="${slot}" data-formatted="${w.formattedDate}">
+      const dateObj = new Date(w.dateStr + 'T00:00:00');
+      dateObj.setHours(0, 0, 0, 0);
+      const isPast = dateObj < today;
+
+      let buttonHtml = '';
+      if (isPast) {
+        buttonHtml = `
+          <button class="btn btn-xs btn-matrix-reserve" disabled style="background:rgba(255,255,255,0.02); border-color:rgba(255,255,255,0.05); color:var(--text-muted); opacity:0.6;">
+            ${isSignedUp ? '<i class="fa-solid fa-user-check"></i> Reservado' : 'Finalizado'}
+          </button>
+        `;
+      } else {
+        buttonHtml = `
           <button class="btn btn-xs ${isSignedUp ? 'btn-success' : 'btn-outline'} btn-matrix-reserve">
             ${isSignedUp ? '<i class="fa-solid fa-user-check"></i> Reservado' : 'Reservar'}
           </button>
+        `;
+      }
+
+      wednesdayHtml += `
+        <td class="reserve-matrix-cell ${isPast ? 'past-cell' : ''}" data-date="${w.dateStr}" data-slot="${slot}" data-formatted="${w.formattedDate}">
+          ${buttonHtml}
           ${signups.length > 0 ? `<span class="cell-signup-count"><i class="fa-solid fa-user"></i> ${signups.length}</span>` : ''}
         </td>
       `;
@@ -1110,6 +1147,12 @@ async function openReserveModal(dateStr, slot, formattedDate) {
     const signups = await getServiceSignups(dateStr, slot);
     const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
 
+    const parsedDate = new Date(dateStr + 'T00:00:00');
+    parsedDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = parsedDate < today;
+
     // Agrupar por área
     const groups = {};
     signups.forEach(s => {
@@ -1144,14 +1187,27 @@ async function openReserveModal(dateStr, slot, formattedDate) {
       `;
     }
 
-    DOM.reserveModalBodyContent.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:15px;">
+    let actionPanelHtml = '';
+    if (isPast) {
+      actionPanelHtml = `
+        <div style="background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); text-align:center;">
+          <span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Servicio finalizado. Registro cerrado.</span>
+        </div>
+      `;
+    } else {
+      actionPanelHtml = `
         <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid var(--border-glass);">
           <span style="font-size:12px; color:white; font-weight:500;">Mi Reservación:</span>
           <button id="btn-modal-reserve-action" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
             ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Cancelar Reserva' : '<i class="fa-solid fa-user-plus"></i> Reservar Lugar'}
           </button>
         </div>
+      `;
+    }
+
+    DOM.reserveModalBodyContent.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:15px;">
+        ${actionPanelHtml}
         
         <div>
           <h4 style="font-size:12px; font-weight:600; color:white; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px; margin-bottom:10px;"><i class="fa-solid fa-users"></i> Personal Reservado:</h4>
@@ -1160,24 +1216,26 @@ async function openReserveModal(dateStr, slot, formattedDate) {
       </div>
     `;
 
-    // Escuchador del botón de reserva en el modal
-    document.getElementById('btn-modal-reserve-action').addEventListener('click', async () => {
-      try {
-        if (isSignedUp) {
-          await cancelSignupForService(dateStr, slot, currentUser.alias);
-        } else {
-          await signupForService(dateStr, slot, currentUser);
+    // Escuchador del botón de reserva en el modal (solo si no es pasado)
+    if (!isPast) {
+      document.getElementById('btn-modal-reserve-action').addEventListener('click', async () => {
+        try {
+          if (isSignedUp) {
+            await cancelSignupForService(dateStr, slot, currentUser.alias);
+          } else {
+            await signupForService(dateStr, slot, currentUser);
+          }
+          // Volver a cargar el modal
+          openReserveModal(dateStr, slot, formattedDate);
+          // Actualizar la grilla principal
+          renderCalendar();
+          // Actualizar la agenda activa del dashboard
+          renderActiveAgenda();
+        } catch (err) {
+          alert("Error al procesar la reserva: " + err.message);
         }
-        // Volver a cargar el modal
-        openReserveModal(dateStr, slot, formattedDate);
-        // Actualizar la grilla principal
-        renderCalendar();
-        // Actualizar la agenda activa del dashboard
-        renderActiveAgenda();
-      } catch (err) {
-        alert("Error al procesar la reserva: " + err.message);
-      }
-    });
+      });
+    }
 
   } catch (err) {
     console.error("Error al abrir modal de reservas:", err);
