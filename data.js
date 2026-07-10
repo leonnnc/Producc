@@ -62,14 +62,19 @@ const initLocalStorage = () => {
     const originalLength = users.length;
     users = users.filter(u => u.alias === "admin" || !["slider1", "lider_cam", "co_lider_sw", "siervo_cam1", "siervo_sw1", "siervo_pendiente"].includes(u.alias));
     
+    // Auto-aprobar cualquier usuario pendiente local (ya que quitamos aprobación manual)
+    users.forEach(u => {
+      if (u.status === "pending") {
+        u.status = "approved";
+      }
+    });
+
     const adminIdx = users.findIndex(u => u.alias === "admin");
     if (adminIdx !== -1 && users[adminIdx].password === "admin") {
       users[adminIdx].password = "AdminCDF26";
     }
     
-    if (users.length !== originalLength || (adminIdx !== -1 && users[adminIdx].password === "AdminCDF26")) {
-      localStorage.setItem("erp_users", JSON.stringify(users));
-    }
+    localStorage.setItem("erp_users", JSON.stringify(users));
   }
   if (!localStorage.getItem("erp_announcements")) {
     localStorage.setItem("erp_announcements", JSON.stringify(DEFAULT_ANNOUNCEMENTS));
@@ -132,6 +137,16 @@ if (isFirebaseActive) {
           if (mockSnapshot.exists()) {
             await deleteDoc(mockDocRef);
             console.log(`🔥 Borrado usuario simulado de Firestore: ${alias}`);
+          }
+        }
+
+        // AUTO-APROBAR USUARIOS PENDIENTES EXISTENTES EN FIRESTORE (ya que quitamos aprobación manual)
+        const allUsersSnapshot = await getDocs(usersCol);
+        for (const userDoc of allUsersSnapshot.docs) {
+          const uData = userDoc.data();
+          if (uData.status === "pending") {
+            await updateDoc(userDoc.ref, { status: "approved" });
+            console.log(`🔥 Auto-aprobado usuario en Firestore: ${uData.alias}`);
           }
         }
       }
