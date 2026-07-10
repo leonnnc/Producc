@@ -874,7 +874,8 @@ async function renderDashboardTeam() {
   DOM.dashboardTeamContainer.innerHTML = '<div class="loading-spinner"></div>';
   
   try {
-    const list = await getUsers(currentUser);
+    const rawList = await getUsers(currentUser);
+    const list = rawList.filter(u => u.role !== 'admin');
     DOM.dashboardTeamBadge.textContent = `${list.length} Miembro${list.length === 1 ? '' : 's'}`;
 
     if (list.length === 0) {
@@ -1374,8 +1375,8 @@ async function renderTeamDirectory() {
   try {
     const list = await getUsers(currentUser);
     
-    // Filtrar solo usuarios aprobados (todos aprobados por defecto)
-    let filtered = list;
+    // Filtrar al Administrador Supremo del directorio de miembros del servicio
+    let filtered = list.filter(u => u.role !== 'admin');
 
     // Filtro por término de búsqueda (Alias o Nombre)
     const term = DOM.searchTeamInput.value.trim().toLowerCase();
