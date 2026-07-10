@@ -63,7 +63,6 @@ const DOM = {
   systemModeIndicator: document.getElementById('system-mode-indicator'),
   btnLogout: document.getElementById('btn-logout'),
   navItems: document.querySelectorAll('.nav-item'),
-  navAdminLi: document.getElementById('nav-admin-console-li'),
   
   // Header principal
   currentSectionTitle: document.getElementById('current-section-title'),
@@ -115,10 +114,7 @@ const DOM = {
   filterTeamArea: document.getElementById('filter-team-area'),
   filterTeamRole: document.getElementById('filter-team-role'),
   teamTableBody: document.getElementById('team-table-body'),
-  
-  // Módulo: Consola de Administración
-  pendingRequestsList: document.getElementById('pending-requests-list'),
-  systemLogsContainer: document.getElementById('system-logs-container'),
+
   
   // Modales
   announcementModal: document.getElementById('announcement-modal'),
@@ -217,12 +213,7 @@ function initSystemModeIndicator() {
 
 // Agregar logs al panel de auditoría (Admin)
 function addAuditLog(type, message) {
-  const time = new Date().toLocaleTimeString('es-ES', { hour12: false });
-  const entry = document.createElement('div');
-  entry.className = `log-entry ${type}`;
-  entry.innerHTML = `<span class="log-time">${time}</span> <span class="log-message">${message}</span>`;
-  DOM.systemLogsContainer.appendChild(entry);
-  DOM.systemLogsContainer.scrollTop = DOM.systemLogsContainer.scrollHeight;
+  console.log(`[AUDIT LOG - ${type.toUpperCase()}] ${message}`);
 }
 
 // --- MANEJADORES DE EVENTOS PRINCIPALES ---
@@ -550,12 +541,10 @@ function configureRolePermissions() {
   
   // Consola de Administración (Pestaña Secreta)
   if (isStaff) {
-    DOM.navAdminLi.classList.remove('hidden');
     DOM.adminStatCard.classList.remove('hidden');
     DOM.btnOpenAnnModal.classList.remove('hidden');
     DOM.uploadPanelContainer.classList.remove('hidden');
   } else {
-    DOM.navAdminLi.classList.add('hidden');
     DOM.adminStatCard.classList.add('hidden');
     DOM.btnOpenAnnModal.classList.add('hidden');
     DOM.uploadPanelContainer.classList.add('hidden');
@@ -607,7 +596,6 @@ function navigateSection(sectionId) {
   if (sectionId === 'sec-agenda') title = "Calendario y Servicios";
   if (sectionId === 'sec-programacion') title = "Hojas de Programación";
   if (sectionId === 'sec-team') title = "Directorio de Equipo";
-  if (sectionId === 'sec-admin-console') title = "Consola de Administración";
   
   DOM.currentSectionTitle.textContent = title;
 
@@ -616,7 +604,6 @@ function navigateSection(sectionId) {
   if (sectionId === 'sec-agenda') renderCalendar();
   if (sectionId === 'sec-programacion') renderProgramHistory();
   if (sectionId === 'sec-team') renderTeamDirectory();
-  if (sectionId === 'sec-admin-console') renderAdminConsole();
 }
 
 // --- RENDERIZADO GENERAL DE DATOS ---
@@ -626,7 +613,6 @@ function renderApp() {
   renderCalendar();
   renderProgramHistory();
   renderTeamDirectory();
-  renderAdminConsole();
 }
 
 // ==========================================================================
@@ -1492,82 +1478,7 @@ async function renderTeamDirectory() {
   }
 }
 
-// ==========================================================================
-// RENDERIZADO: CONSOLA DE ADMINISTRACIÓN (SOLICITUDES PENDIENTES)
-// ==========================================================================
-async function renderAdminConsole() {
-  if (currentUser.role !== 'admin' && currentUser.role !== 'slider') return;
 
-  DOM.pendingRequestsList.innerHTML = '<div class="loading-spinner"></div>';
-
-  try {
-    const list = await getUsers(currentUser);
-    const pending = list.filter(u => u.status === 'pending');
-    
-    if (pending.length === 0) {
-      DOM.pendingRequestsList.innerHTML = '<p class="placeholder-text" style="padding: 20px 0;">No hay solicitudes de registro pendientes.</p>';
-      return;
-    }
-
-    DOM.pendingRequestsList.innerHTML = pending.map(u => `
-      <div class="request-card glass-panel">
-        <div class="member-name-cell">
-          <div class="member-cell-avatar" style="background-color:rgba(245, 158, 11, 0.15); color:var(--color-amber);">${u.name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}</div>
-          <div>
-            <div class="member-cell-name">${u.name}</div>
-            <div class="member-cell-alias">@${u.alias}</div>
-          </div>
-        </div>
-        <div class="request-info-grid">
-          <div><strong>Correo:</strong> ${u.email}</div>
-          <div><strong>Teléfono:</strong> ${u.phone}</div>
-          <div><strong>Distrito:</strong> ${u.district}</div>
-          <div><strong>Área Solicitada:</strong> <span class="badge badge-area">${u.area}</span></div>
-        </div>
-        <div class="request-actions">
-          <button class="btn btn-outline btn-xs btn-reject-req" data-alias="${u.alias}"><i class="fa-solid fa-user-xmark"></i> Rechazar</button>
-          <button class="btn btn-success btn-xs btn-approve-req" data-alias="${u.alias}"><i class="fa-solid fa-user-check"></i> Aprobar Acceso</button>
-        </div>
-      </div>
-    `).join('');
-
-    // Asignar eventos de aprobación / rechazo
-    DOM.pendingRequestsList.querySelectorAll('.btn-approve-req').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const alias = e.currentTarget.getAttribute('data-alias');
-        try {
-          await approveUser(alias, currentUser);
-          alert(`Usuario @${alias} aprobado correctamente.`);
-          addAuditLog("success", `Registro aprobado: @${alias} ahora es miembro activo.`);
-          renderAdminConsole();
-          renderDashboardHome();
-        } catch (err) {
-          alert("Error: " + err.message);
-        }
-      });
-    });
-
-    DOM.pendingRequestsList.querySelectorAll('.btn-reject-req').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const alias = e.currentTarget.getAttribute('data-alias');
-        if (confirm(`¿Rechazar y eliminar la solicitud de @${alias}?`)) {
-          try {
-            await deleteUser(alias, currentUser);
-            alert(`Solicitud de @${alias} rechazada.`);
-            addAuditLog("warning", `Solicitud de registro de @${alias} fue rechazada y eliminada.`);
-            renderAdminConsole();
-            renderDashboardHome();
-          } catch (err) {
-            alert("Error: " + err.message);
-          }
-        }
-      });
-    });
-
-  } catch (err) {
-    DOM.pendingRequestsList.innerHTML = '<p class="placeholder-text">Error al cargar solicitudes.</p>';
-  }
-}
 
 // ==========================================================================
 // VISOR DE ARCHIVOS INTEGRADO (MODAL PREVIEW)

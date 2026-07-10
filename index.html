@@ -204,11 +204,7 @@
               <i class="fa-solid fa-users"></i> <span>Gestión de Equipo</span>
             </a>
           </li>
-          <li class="admin-only hidden" id="nav-admin-console-li">
-            <a href="#" class="nav-item nav-item-admin" data-target="sec-admin-console" id="nav-admin-console">
-              <i class="fa-solid fa-user-shield"></i> <span>Consola de Admin</span>
-            </a>
-          </li>
+
         </ul>
       </nav>
 
@@ -501,37 +497,7 @@
           </div>
         </section>
 
-        <!-- ==================== SECCIÓN: CONSOLA DE ADMIN (SECRETA) ==================== -->
-        <section id="sec-admin-console" class="content-section hidden">
-          <div class="admin-console-grid">
-            
-            <!-- Cola de Solicitudes Pendientes -->
-            <div class="glass-panel pending-requests-panel">
-              <div class="card-header">
-                <h3><i class="fa-solid fa-user-clock text-amber"></i> Solicitudes de Registro Pendientes</h3>
-              </div>
-              <div class="card-body">
-                <div class="requests-list" id="pending-requests-list">
-                  <!-- Inyectado dinámicamente -->
-                </div>
-              </div>
-            </div>
 
-            <!-- Estadísticas y Registros del Sistema (Logs) -->
-            <div class="glass-panel system-logs-panel">
-              <div class="card-header">
-                <h3><i class="fa-solid fa-receipt text-cyan"></i> Auditoría Técnica y Registros</h3>
-              </div>
-              <div class="card-body">
-                <div class="logs-container" id="system-logs-container">
-                  <div class="log-entry system"><span class="log-time">17:09:35</span> <span class="log-message">Servidor de Producción iniciado correctamente. Fallback de base de datos listo.</span></div>
-                  <div class="log-entry info"><span class="log-time">17:10:02</span> <span class="log-message">Cargados datos semilla (7 usuarios, 2 anuncios).</span></div>
-                </div>
-              </div>
-            </div>
-            
-          </div>
-        </section>
 
       </main>
     </div>
