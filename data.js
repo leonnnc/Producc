@@ -460,3 +460,14 @@ export async function cancelSignupForService(date, time, userAlias) {
   const docRef = fb.firestore.doc(fb.firebaseDb, "agenda", entryId);
   await fb.firestore.deleteDoc(docRef);
 }
+
+/**
+ * Obtiene todas las anotaciones de servicios en el sistema.
+ * @returns {Promise<Array>} Listado de todas las asignaciones.
+ */
+export async function getAllServiceSignups() {
+  const fb = await dbPromise;
+  const agendaRef = fb.firestore.collection(fb.firebaseDb, "agenda");
+  const querySnapshot = await fb.firestore.getDocs(agendaRef);
+  return querySnapshot.docs.map(doc => doc.data());
+}

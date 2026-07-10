@@ -13,7 +13,8 @@ import {
   createAnnouncement,
   getServiceSignups,
   signupForService,
-  cancelSignupForService
+  cancelSignupForService,
+  getAllServiceSignups
 } from './data.js';
 
 import { isFirebaseConfigured } from './firebase-config.js';
@@ -25,8 +26,6 @@ let selectedDate = null;       // Fecha seleccionada en el calendario
 let selectedFileBase64 = null; // Archivo cargado en Base64
 let selectedFileType = null;   // Tipo del archivo cargado (image o pdf)
 let selectedFileName = null;   // Nombre del archivo cargado
-let activeAgendaDate = null;   // Fecha seleccionada en agenda activa del Dashboard
-let activeAgendaTime = null;   // Hora seleccionada en agenda activa del Dashboard
 
 // --- ELEMENTOS DEL DOM ---
 const DOM = {
@@ -771,49 +770,67 @@ async function renderActiveAgenda() {
   DOM.activeAgendaContainer.innerHTML = '<div class="loading-spinner"></div>';
   
   try {
-    // Inicializar valores por defecto si no están definidos
-    if (!activeAgendaDate || !activeAgendaTime) {
-      const target = await getTargetService();
-      if (target) {
-        activeAgendaDate = target.date;
-        activeAgendaTime = target.time;
-      } else {
-        const today = new Date();
-        activeAgendaDate = today.toISOString().split('T')[0];
-        activeAgendaTime = "08:00 AM";
+    // 1. Obtener todas las anotaciones de la base de datos
+    const signups = await getAllServiceSignups();
+
+    // 2. Filtrar solo las asignaciones futuras o activas
+    const now = new Date();
+    const parseDateTime = (dateStr, timeStr) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      let [timeVal, modifier] = timeStr.split(' ');
+      let [hours, minutes] = timeVal.split(':').map(Number);
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return new Date(year, month - 1, day, hours, minutes);
+    };
+
+    const upcomingSignups = signups.filter(s => {
+      try {
+        const serviceDate = parseDateTime(s.date, s.time);
+        const serviceEndDate = new Date(serviceDate.getTime() + 2 * 60 * 60 * 1000); // 2 horas de duración
+        return serviceEndDate >= now;
+      } catch (e) {
+        return false;
       }
-    }
-
-    // 1. Obtener la lista de TODOS los usuarios registrados y filtrar solo los que tienen el rol de "siervo"
-    const allUsers = await getUsers(currentUser);
-    const servants = allUsers.filter(u => u.role === 'siervo');
-
-    // 2. Obtener los anotados para el servicio seleccionado
-    const signups = await getServiceSignups(activeAgendaDate, activeAgendaTime);
-    
-    // Contar cuántos están anotados
-    DOM.activeAgendaBadge.textContent = `${signups.length} Asignado${signups.length === 1 ? '' : 's'}`;
-
-    // Agrupar a todos los siervos registrados por su área
-    const groups = {};
-    servants.forEach(s => {
-      if (!groups[s.area]) groups[s.area] = [];
-      groups[s.area].push(s);
     });
+
+    // Ordenar cronológicamente
+    upcomingSignups.sort((a, b) => {
+      try {
+        return parseDateTime(a.date, a.time) - parseDateTime(b.date, b.time);
+      } catch (e) {
+        return 0;
+      }
+    });
+
+    // Actualizar cantidad de asignaciones activas
+    DOM.activeAgendaBadge.textContent = `${upcomingSignups.length} Asignación${upcomingSignups.length === 1 ? '' : 'es'}`;
+
+    // Agrupar asignaciones por Servicio (Fecha + Hora)
+    const serviceGroups = {};
+    upcomingSignups.forEach(s => {
+      const key = `${s.date} (${s.time})`;
+      if (!serviceGroups[key]) serviceGroups[key] = [];
+      serviceGroups[key].push(s);
+    });
+
+    const formatKey = (keyStr) => {
+      const [datePart, timePart] = keyStr.split(' (');
+      const parsedDate = new Date(datePart + 'T00:00:00');
+      const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${monthNames[parsedDate.getMonth()]}`;
+      return `${formattedDate} (${timePart.slice(0, -1)})`;
+    };
 
     let signupsHtml = '';
     
-    // Crear líneas de cuaderno planas para todos los siervos
+    // Crear líneas de cuaderno planas para todas las asignaciones
     const notebookLines = [];
-    Object.keys(groups).forEach(area => {
-      notebookLines.push({ type: 'header', text: area });
-      groups[area].forEach(servant => {
-        const isAssigned = signups.some(x => x.userAlias === servant.alias);
-        notebookLines.push({
-          type: 'member',
-          servant: servant,
-          isAssigned: isAssigned
-        });
+    Object.keys(serviceGroups).forEach(key => {
+      notebookLines.push({ type: 'header', text: formatKey(key) });
+      serviceGroups[key].forEach(m => {
+        notebookLines.push({ type: 'member', name: m.userName, alias: m.userAlias, area: m.userArea });
       });
     });
 
@@ -822,108 +839,46 @@ async function renderActiveAgenda() {
       notebookLines.push({ type: 'empty' });
     }
 
-    signupsHtml = `
-      <div class="notebook-agenda">
-        ${notebookLines.map(line => {
-          if (line.type === 'header') {
-            return `<div class="notebook-line notebook-header"><i class="fa-solid fa-folder-open text-cyan" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
-          } else if (line.type === 'member') {
-            const s = line.servant;
-            const isAssigned = line.isAssigned;
-            const canToggle = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias;
-            
-            // Creamos un botón interactivo si tiene permiso, sino un indicador pasivo
-            let actionHtml = '';
-            if (canToggle) {
-              actionHtml = `
-                <button class="btn-toggle-assignment" data-alias="${s.alias}" data-assigned="${isAssigned}" style="background:none; border:none; padding:2px 6px; cursor:pointer; color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; display:flex; align-items:center;">
-                  <i class="${isAssigned ? 'fa-solid fa-square-check' : 'fa-regular fa-square'}"></i>
-                </button>
+    if (upcomingSignups.length === 0) {
+      signupsHtml = `
+        <div class="notebook-agenda">
+          <div class="notebook-line placeholder-text" style="color:var(--text-muted); font-size:12px; justify-content:center; width:100%;"><i class="fa-solid fa-users-slash"></i> Ningún siervo se ha anotado aún.</div>
+          <div class="notebook-line"></div>
+          <div class="notebook-line"></div>
+          <div class="notebook-line"></div>
+          <div class="notebook-line"></div>
+          <div class="notebook-line"></div>
+        </div>
+      `;
+    } else {
+      signupsHtml = `
+        <div class="notebook-agenda">
+          ${notebookLines.map(line => {
+            if (line.type === 'header') {
+              return `<div class="notebook-line notebook-header" style="color:var(--color-cyan);"><i class="fa-regular fa-clock" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
+            } else if (line.type === 'member') {
+              return `
+                <div class="notebook-line notebook-member" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding-right:10px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i>
+                    <span>${line.name} <small style="color:var(--text-muted);">(@${line.alias})</small></span>
+                  </div>
+                  <span style="font-size:10px; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; font-weight:600;">${line.area}</span>
+                </div>
               `;
             } else {
-              actionHtml = `
-                <span style="color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; padding:2px 6px; display:flex; align-items:center;">
-                  <i class="${isAssigned ? 'fa-solid fa-check' : 'fa-solid fa-minus'}"></i>
-                </span>
-              `;
+              return `<div class="notebook-line"></div>`;
             }
-
-            return `
-              <div class="notebook-line notebook-member" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding-right:10px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i>
-                  <span style="${isAssigned ? 'text-decoration:none; font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
-                </div>
-                ${actionHtml}
-              </div>
-            `;
-          } else {
-            return `<div class="notebook-line"></div>`;
-          }
-        }).join('')}
-      </div>
-    `;
+          }).join('')}
+        </div>
+      `;
+    }
 
     DOM.activeAgendaContainer.innerHTML = `
       <div class="active-agenda-card-wrapper">
-        <div class="active-agenda-header-info" style="display:flex; flex-direction:column; gap:8px; align-items:stretch; margin-bottom:12px;">
-          <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
-            <i class="fa-regular fa-calendar-days"></i> Seleccionar Servicio (Fecha y Hora)
-          </div>
-          <div class="service-selector-row" style="display:flex; gap:8px;">
-            <input type="date" id="active-agenda-date-select" class="form-control input-sm" value="${activeAgendaDate}" style="flex:1.2; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:4px; padding:4px 8px; font-size:12px; height:32px;">
-            <select id="active-agenda-time-select" class="form-control input-sm" style="flex:1; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:4px; padding:4px 8px; font-size:12px; height:32px;">
-              <option value="08:00 AM" ${activeAgendaTime === '08:00 AM' ? 'selected' : ''}>08:00 AM</option>
-              <option value="11:00 AM" ${activeAgendaTime === '11:00 AM' ? 'selected' : ''}>11:00 AM</option>
-              <option value="01:00 PM" ${activeAgendaTime === '01:00 PM' ? 'selected' : ''}>01:00 PM</option>
-              <option value="07:00 PM" ${activeAgendaTime === '07:00 PM' ? 'selected' : ''}>07:00 PM</option>
-              <option value="07:30 PM" ${activeAgendaTime === '07:30 PM' ? 'selected' : ''}>07:30 PM</option>
-            </select>
-          </div>
-        </div>
         ${signupsHtml}
       </div>
     `;
-
-    // Asociar eventos de cambio a los inputs de selección de fecha y hora
-    const dateInput = document.getElementById('active-agenda-date-select');
-    const timeSelect = document.getElementById('active-agenda-time-select');
-
-    const handleSelectorChange = () => {
-      activeAgendaDate = dateInput.value;
-      activeAgendaTime = timeSelect.value;
-      renderActiveAgenda();
-    };
-
-    dateInput.addEventListener('change', handleSelectorChange);
-    timeSelect.addEventListener('change', handleSelectorChange);
-
-    // Asociar eventos click a los botones de check
-    DOM.activeAgendaContainer.querySelectorAll('.btn-toggle-assignment').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const alias = btn.getAttribute('data-alias');
-        const assigned = btn.getAttribute('data-assigned') === 'true';
-        const targetServant = servants.find(x => x.alias === alias);
-        
-        try {
-          if (assigned) {
-            await cancelSignupForService(activeAgendaDate, activeAgendaTime, alias);
-          } else {
-            await signupForService(activeAgendaDate, activeAgendaTime, targetServant);
-          }
-          // Volver a renderizar
-          renderActiveAgenda();
-          // Si la sección activa es Agenda, también refrescarla
-          const activeSection = document.querySelector('.content-section:not(.hidden)');
-          if (activeSection && activeSection.id === 'sec-agenda') {
-            renderCalendar();
-          }
-        } catch (err) {
-          alert("Error al actualizar la asignación: " + err.message);
-        }
-      });
-    });
 
   } catch (err) {
     console.error("Error al cargar la agenda activa:", err);
