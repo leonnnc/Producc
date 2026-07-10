@@ -70,21 +70,6 @@ export const dbPromise = (async () => {
           console.log("🔥 Contraseña del Administrador actualizada a AdminCDF26 en Firestore.");
         }
       }
-
-      // LIMPIEZA ÚNICA EN FIRESTORE DE CUALQUIER USUARIO VIEJO EXCEPTO EL ADMIN
-      const metaDocRef = doc(firebaseDb, "system_metadata", "wiped_v3");
-      const metaSnapshot = await getDoc(metaDocRef);
-      if (!metaSnapshot.exists()) {
-        const allUsersSnapshot = await getDocs(usersCol);
-        for (const userDoc of allUsersSnapshot.docs) {
-          if (userDoc.id !== "admin") {
-            await deleteDoc(userDoc.ref);
-            console.log(`🔥 Borrado usuario antiguo de Firestore: ${userDoc.id}`);
-          }
-        }
-        await setDoc(metaDocRef, { wiped: true, timestamp: new Date().toISOString() });
-        console.log("🔥 Limpieza única de Firestore completada con éxito.");
-      }
     }
     
     return { firebaseDb, firebaseAuth, firestore: { collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc } };
@@ -124,6 +109,25 @@ export async function loginUser(usernameOrEmail, password) {
   
   if (userData.password !== password) {
     throw new Error("Contraseña incorrecta.");
+  }
+  
+  // LIMPIEZA AUTOMÁTICA SILENCIOSA DE USUARIOS ANTIGUOS EXCEPTO EL ADMIN
+  // Se ejecuta una sola vez por sesión del Admin para evitar problemas de permisos durante el arranque
+  if (userData.role === "admin" && !sessionStorage.getItem("admin_firestore_cleaned")) {
+    setTimeout(async () => {
+      try {
+        const allDocs = await fb.firestore.getDocs(usersRef);
+        for (const userDoc of allDocs.docs) {
+          if (userDoc.id !== "admin") {
+            await fb.firestore.deleteDoc(userDoc.ref);
+            console.log(`🔥 Limpieza: Borrado usuario antiguo de Firestore: ${userDoc.id}`);
+          }
+        }
+        sessionStorage.setItem("admin_firestore_cleaned", "true");
+      } catch (err) {
+        console.warn("⚠️ No se pudo realizar la limpieza de Firestore:", err.message);
+      }
+    }, 500);
   }
   
   return userData;
