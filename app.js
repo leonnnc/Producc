@@ -776,11 +776,15 @@ async function renderActiveAgenda() {
       return;
     }
 
-    // Obtener los anotados
-    const signups = await getServiceSignups(target.date, target.time);
-    DOM.activeAgendaBadge.textContent = `${signups.length} Asignado${signups.length === 1 ? '' : 's'}`;
+    // 1. Obtener la lista de TODOS los usuarios registrados y filtrar solo los que tienen el rol de "siervo"
+    const allUsers = await getUsers(currentUser);
+    const servants = allUsers.filter(u => u.role === 'siervo');
 
-    const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
+    // 2. Obtener los anotados para el servicio activo
+    const signups = await getServiceSignups(target.date, target.time);
+    
+    // Contar cuántos están anotados
+    DOM.activeAgendaBadge.textContent = `${signups.length} Asignado${signups.length === 1 ? '' : 's'}`;
 
     // Formatear fecha bonita
     const parsedDate = new Date(target.date + 'T00:00:00');
@@ -788,21 +792,26 @@ async function renderActiveAgenda() {
     const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${monthNames[parsedDate.getMonth()]} (${target.time})`;
 
-    // Agrupar por área
+    // Agrupar a todos los siervos registrados por su área
     const groups = {};
-    signups.forEach(s => {
-      if (!groups[s.userArea]) groups[s.userArea] = [];
-      groups[s.userArea].push(s);
+    servants.forEach(s => {
+      if (!groups[s.area]) groups[s.area] = [];
+      groups[s.area].push(s);
     });
 
     let signupsHtml = '';
     
-    // Crear líneas de cuaderno planas
+    // Crear líneas de cuaderno planas para todos los siervos
     const notebookLines = [];
     Object.keys(groups).forEach(area => {
       notebookLines.push({ type: 'header', text: area });
-      groups[area].forEach(m => {
-        notebookLines.push({ type: 'member', name: m.userName, alias: m.userAlias });
+      groups[area].forEach(servant => {
+        const isAssigned = signups.some(x => x.userAlias === servant.alias);
+        notebookLines.push({
+          type: 'member',
+          servant: servant,
+          isAssigned: isAssigned
+        });
       });
     });
 
@@ -817,15 +826,41 @@ async function renderActiveAgenda() {
           if (line.type === 'header') {
             return `<div class="notebook-line notebook-header"><i class="fa-solid fa-folder-open text-cyan" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
           } else if (line.type === 'member') {
-            return `<div class="notebook-line notebook-member"><i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i> <span>${line.name} <small style="color:var(--text-muted);">(${line.alias})</small></span></div>`;
+            const s = line.servant;
+            const isAssigned = line.isAssigned;
+            const canToggle = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias;
+            
+            // Creamos un botón interactivo si tiene permiso, sino un indicador pasivo
+            let actionHtml = '';
+            if (canToggle) {
+              actionHtml = `
+                <button class="btn-toggle-assignment" data-alias="${s.alias}" data-assigned="${isAssigned}" style="background:none; border:none; padding:2px 6px; cursor:pointer; color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; display:flex; align-items:center;">
+                  <i class="${isAssigned ? 'fa-solid fa-square-check' : 'fa-regular fa-square'}"></i>
+                </button>
+              `;
+            } else {
+              actionHtml = `
+                <span style="color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; padding:2px 6px; display:flex; align-items:center;">
+                  <i class="${isAssigned ? 'fa-solid fa-check' : 'fa-solid fa-minus'}"></i>
+                </span>
+              `;
+            }
+
+            return `
+              <div class="notebook-line notebook-member" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding-right:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i>
+                  <span style="${isAssigned ? 'text-decoration:none; font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
+                </div>
+                ${actionHtml}
+              </div>
+            `;
           } else {
             return `<div class="notebook-line"></div>`;
           }
         }).join('')}
       </div>
     `;
-
-    const isSiervo = currentUser.role === 'siervo';
 
     DOM.activeAgendaContainer.innerHTML = `
       <div class="active-agenda-card-wrapper">
@@ -834,24 +869,24 @@ async function renderActiveAgenda() {
             <span class="agenda-info-label"><i class="fa-regular fa-clock"></i> Próximo Servicio Activo:</span>
             <h4 class="agenda-info-date">${formattedDate}</h4>
           </div>
-          ${isSiervo ? `
-            <button id="btn-toggle-active-signup" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
-              ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Quitarme' : '<i class="fa-solid fa-user-plus"></i> Anotarme'}
-            </button>
-          ` : ''}
         </div>
         ${signupsHtml}
       </div>
     `;
 
-    // Hook del botón de anotarse/quitarse (solo si es siervo)
-    if (isSiervo) {
-      document.getElementById('btn-toggle-active-signup').addEventListener('click', async () => {
+    // Asociar eventos click a los botones de check
+    DOM.activeAgendaContainer.querySelectorAll('.btn-toggle-assignment').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const alias = btn.getAttribute('data-alias');
+        const assigned = btn.getAttribute('data-assigned') === 'true';
+        const targetServant = servants.find(x => x.alias === alias);
+        
         try {
-          if (isSignedUp) {
-            await cancelSignupForService(target.date, target.time, currentUser.alias);
+          if (assigned) {
+            await cancelSignupForService(target.date, target.time, alias);
           } else {
-            await signupForService(target.date, target.time, currentUser);
+            await signupForService(target.date, target.time, targetServant);
           }
           // Volver a renderizar
           renderActiveAgenda();
@@ -861,10 +896,10 @@ async function renderActiveAgenda() {
             renderCalendar();
           }
         } catch (err) {
-          alert("Error al guardar la asignación: " + err.message);
+          alert("Error al actualizar la asignación: " + err.message);
         }
       });
-    }
+    });
 
   } catch (err) {
     console.error("Error al cargar la agenda activa:", err);
@@ -1126,6 +1161,11 @@ async function openReserveModal(dateStr, slot, formattedDate) {
   DOM.serviceReserveModal.classList.remove('hidden');
 
   try {
+    // 1. Obtener todos los siervos registrados
+    const allUsers = await getUsers(currentUser);
+    const servants = allUsers.filter(u => u.role === 'siervo');
+
+    // 2. Obtener los anotados para esta fecha y hora
     const signups = await getServiceSignups(dateStr, slot);
     const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
 
@@ -1135,21 +1175,26 @@ async function openReserveModal(dateStr, slot, formattedDate) {
     today.setHours(0, 0, 0, 0);
     const isPast = parsedDate < today;
 
-    // Agrupar por área
+    // Agrupar a todos los siervos registrados por su área
     const groups = {};
-    signups.forEach(s => {
-      if (!groups[s.userArea]) groups[s.userArea] = [];
-      groups[s.userArea].push(s);
+    servants.forEach(s => {
+      if (!groups[s.area]) groups[s.area] = [];
+      groups[s.area].push(s);
     });
 
     let signupsHtml = '';
     
-    // Crear líneas de cuaderno planas
+    // Crear líneas de cuaderno planas para todos los siervos
     const notebookLines = [];
     Object.keys(groups).forEach(area => {
       notebookLines.push({ type: 'header', text: area });
-      groups[area].forEach(m => {
-        notebookLines.push({ type: 'member', name: m.userName, alias: m.userAlias });
+      groups[area].forEach(servant => {
+        const isAssigned = signups.some(x => x.userAlias === servant.alias);
+        notebookLines.push({
+          type: 'member',
+          servant: servant,
+          isAssigned: isAssigned
+        });
       });
     });
 
@@ -1164,7 +1209,34 @@ async function openReserveModal(dateStr, slot, formattedDate) {
           if (line.type === 'header') {
             return `<div class="notebook-line notebook-header"><i class="fa-solid fa-folder-open text-cyan" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
           } else if (line.type === 'member') {
-            return `<div class="notebook-line notebook-member"><i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i> <span>${line.name} <small style="color:var(--text-muted);">(${line.alias})</small></span></div>`;
+            const s = line.servant;
+            const isAssigned = line.isAssigned;
+            const canToggle = !isPast && (currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias);
+            
+            let actionHtml = '';
+            if (canToggle) {
+              actionHtml = `
+                <button class="btn-modal-toggle-assignment" data-alias="${s.alias}" data-assigned="${isAssigned}" style="background:none; border:none; padding:2px 6px; cursor:pointer; color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; display:flex; align-items:center;">
+                  <i class="${isAssigned ? 'fa-solid fa-square-check' : 'fa-regular fa-square'}"></i>
+                </button>
+              `;
+            } else {
+              actionHtml = `
+                <span style="color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; padding:2px 6px; display:flex; align-items:center;">
+                  <i class="${isAssigned ? 'fa-solid fa-check' : 'fa-solid fa-minus'}"></i>
+                </span>
+              `;
+            }
+
+            return `
+              <div class="notebook-line notebook-member" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding-right:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i>
+                  <span style="${isAssigned ? 'text-decoration:none; font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
+                </div>
+                ${actionHtml}
+              </div>
+            `;
           } else {
             return `<div class="notebook-line"></div>`;
           }
@@ -1179,19 +1251,10 @@ async function openReserveModal(dateStr, slot, formattedDate) {
           <span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Servicio finalizado. Registro cerrado.</span>
         </div>
       `;
-    } else if (currentUser.role === 'siervo') {
-      actionPanelHtml = `
-        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid var(--border-glass);">
-          <span style="font-size:12px; color:white; font-weight:500;">Mi Reservación:</span>
-          <button id="btn-modal-reserve-action" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
-            ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Cancelar Reserva' : '<i class="fa-solid fa-user-plus"></i> Reservar Lugar'}
-          </button>
-        </div>
-      `;
     } else {
       actionPanelHtml = `
-        <div style="background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); text-align:center;">
-          <span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-circle-info"></i> Solo los Siervos pueden anotarse en los turnos de servicio.</span>
+        <div style="background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid var(--border-glass); text-align:center;">
+          <span style="font-size:12px; color:white; font-weight:500;"><i class="fa-solid fa-user-clock"></i> Administra el personal del servicio activo abajo:</span>
         </div>
       `;
     }
@@ -1201,30 +1264,37 @@ async function openReserveModal(dateStr, slot, formattedDate) {
         ${actionPanelHtml}
         
         <div>
-          <h4 style="font-size:12px; font-weight:600; color:white; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px; margin-bottom:10px;"><i class="fa-solid fa-users"></i> Personal Reservado:</h4>
+          <h4 style="font-size:12px; font-weight:600; color:white; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px; margin-bottom:10px;"><i class="fa-solid fa-users"></i> Lista de Siervos del Turno:</h4>
           ${signupsHtml}
         </div>
       </div>
     `;
 
-    // Escuchador del botón de reserva en el modal (solo si no es pasado y es siervo)
-    if (!isPast && currentUser.role === 'siervo') {
-      document.getElementById('btn-modal-reserve-action').addEventListener('click', async () => {
-        try {
-          if (isSignedUp) {
-            await cancelSignupForService(dateStr, slot, currentUser.alias);
-          } else {
-            await signupForService(dateStr, slot, currentUser);
+    // Asociar eventos click a los botones de check del modal
+    if (!isPast) {
+      DOM.reserveModalBodyContent.querySelectorAll('.btn-modal-toggle-assignment').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const alias = btn.getAttribute('data-alias');
+          const assigned = btn.getAttribute('data-assigned') === 'true';
+          const targetServant = servants.find(x => x.alias === alias);
+          
+          try {
+            if (assigned) {
+              await cancelSignupForService(dateStr, slot, alias);
+            } else {
+              await signupForService(dateStr, slot, targetServant);
+            }
+            // Volver a cargar el modal
+            openReserveModal(dateStr, slot, formattedDate);
+            // Actualizar la grilla principal
+            renderCalendar();
+            // Actualizar la agenda activa del dashboard
+            renderActiveAgenda();
+          } catch (err) {
+            alert("Error al actualizar la asignación: " + err.message);
           }
-          // Volver a cargar el modal
-          openReserveModal(dateStr, slot, formattedDate);
-          // Actualizar la grilla principal
-          renderCalendar();
-          // Actualizar la agenda activa del dashboard
-          renderActiveAgenda();
-        } catch (err) {
-          alert("Error al procesar la reserva: " + err.message);
-        }
+        });
       });
     }
 
