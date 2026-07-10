@@ -164,9 +164,6 @@ export async function loginUser(usernameOrEmail, password) {
       
       // Si no encuentra por alias, buscamos por correo
       if (querySnapshot.empty) {
-        if (usernameOrEmail.includes("@") && !usernameOrEmail.toLowerCase().endsWith("@produccion.com")) {
-          throw new Error("El correo de acceso debe pertenecer al dominio @produccion.com");
-        }
         q = fb.firestore.query(usersRef, fb.firestore.where("email", "==", usernameOrEmail));
         querySnapshot = await fb.firestore.getDocs(q);
       }
@@ -190,9 +187,6 @@ export async function loginUser(usernameOrEmail, password) {
   }
 
   // Fallback LocalStorage
-  if (usernameOrEmail.includes("@") && !usernameOrEmail.toLowerCase().endsWith("@produccion.com")) {
-    throw new Error("El correo de acceso debe pertenecer al dominio @produccion.com");
-  }
   const users = JSON.parse(localStorage.getItem("erp_users") || "[]");
   const user = users.find(u => (u.alias === usernameOrEmail || u.email === usernameOrEmail));
   
@@ -216,11 +210,6 @@ export async function loginUser(usernameOrEmail, password) {
  * @param {Object} userData Datos del registro del usuario.
  */
 export async function registerUser(userData) {
-  // Validar que el correo pertenezca únicamente al dominio @produccion.com
-  if (!userData.email.toLowerCase().endsWith("@produccion.com")) {
-    throw new Error("El correo de registro debe pertenecer únicamente al dominio @produccion.com");
-  }
-
   const newUser = {
     ...userData,
     role: "siervo", // Por defecto es Siervo hasta que el Admin/SLíder lo modifique
@@ -621,12 +610,6 @@ export async function loginUserWithGoogle() {
       const result = await signInWithPopup(fb.firebaseAuth, provider);
       const user = result.user;
       
-      // Validar dominio de correo
-      if (!user.email.toLowerCase().endsWith("@produccion.com")) {
-        await fb.firebaseAuth.signOut();
-        throw new Error("Acceso restringido: Tu cuenta de Google debe pertenecer al dominio @produccion.com");
-      }
-      
       const usersRef = fb.firestore.collection(fb.firebaseDb, "users");
       const q = fb.firestore.query(usersRef, fb.firestore.where("email", "==", user.email));
       const querySnapshot = await fb.firestore.getDocs(q);
@@ -659,12 +642,6 @@ export async function loginUserWithGoogle() {
   // MODO LOCALSTORAGE (Fallback) - Acceso Directo de Administrador (Sin simulación)
   return new Promise((resolve, reject) => {
     const email = "leonn.cruz@produccion.com";
-    
-    // Validar dominio de correo
-    if (!email.endsWith("@produccion.com")) {
-      reject(new Error("Acceso restringido: Tu cuenta de Google debe pertenecer al dominio @produccion.com"));
-      return;
-    }
     
     const users = JSON.parse(localStorage.getItem("erp_users") || "[]");
     
