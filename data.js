@@ -56,10 +56,18 @@ const initLocalStorage = () => {
     localStorage.setItem("erp_users", JSON.stringify(DEFAULT_USERS));
   } else {
     // Si ya existe, nos aseguramos de actualizar la clave de admin si tiene el default anterior
-    const users = JSON.parse(localStorage.getItem("erp_users") || "[]");
+    let users = JSON.parse(localStorage.getItem("erp_users") || "[]");
+    
+    // Limpieza activa de usuarios simulados
+    const originalLength = users.length;
+    users = users.filter(u => u.alias === "admin" || !["slider1", "lider_cam", "co_lider_sw", "siervo_cam1", "siervo_sw1", "siervo_pendiente"].includes(u.alias));
+    
     const adminIdx = users.findIndex(u => u.alias === "admin");
     if (adminIdx !== -1 && users[adminIdx].password === "admin") {
       users[adminIdx].password = "AdminCDF26";
+    }
+    
+    if (users.length !== originalLength || (adminIdx !== -1 && users[adminIdx].password === "AdminCDF26")) {
       localStorage.setItem("erp_users", JSON.stringify(users));
     }
   }
@@ -113,6 +121,17 @@ if (isFirebaseActive) {
           if (adminData.password === "admin") {
             await updateDoc(adminDocRef, { password: "AdminCDF26" });
             console.log("🔥 Contraseña del Administrador actualizada a AdminCDF26 en Firestore.");
+          }
+        }
+
+        // LIMPIEZA DE GENTE SIMULADA EN FIRESTORE
+        const mockAliases = ["slider1", "lider_cam", "co_lider_sw", "siervo_cam1", "siervo_sw1", "siervo_pendiente"];
+        for (const alias of mockAliases) {
+          const mockDocRef = doc(firebaseDb, "users", alias);
+          const mockSnapshot = await getDoc(mockDocRef);
+          if (mockSnapshot.exists()) {
+            await deleteDoc(mockDocRef);
+            console.log(`🔥 Borrado usuario simulado de Firestore: ${alias}`);
           }
         }
       }
