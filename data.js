@@ -272,7 +272,7 @@ export async function registerUser(userData) {
   const newUser = {
     ...userData,
     role: "siervo", // Por defecto es Siervo hasta que el Admin/SLíder lo modifique
-    status: "pending" // Requiere aprobación
+    status: "approved" // Aprobación instantánea
   };
 
   if (isFirebaseActive && dbPromise) {
@@ -691,18 +691,15 @@ export async function loginUserWithGoogle() {
           district: "No asignado",
           area: "Otros",
           role: "siervo",
-          status: "pending",
+          status: "approved",
           password: "google_authenticated"
         };
         
         await fb.firestore.setDoc(fb.firestore.doc(fb.firebaseDb, "users", alias), newGoogleUser);
-        throw new Error(`Tu cuenta de Google (${user.email}) ha sido registrada en el sistema. Debe ser aprobada por un Administrador o S-Líder antes de ingresar.`);
+        return newGoogleUser;
       }
       
       const userData = querySnapshot.docs[0].data();
-      if (userData.status === "pending") {
-        throw new Error("Tu cuenta de Google ya está registrada, pero aún se encuentra pendiente de aprobación.");
-      }
       return userData;
     }
   }
@@ -742,11 +739,7 @@ export async function loginUserWithGoogle() {
     }
 
     if (user) {
-      if (user.status === "pending") {
-        reject(new Error("Tu cuenta de Google está registrada pero pendiente de aprobación."));
-      } else {
-        resolve(user);
-      }
+      resolve(user);
     } else {
       const emailParts = email.split('@');
       const alias = emailParts[0].replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
@@ -759,13 +752,13 @@ export async function loginUserWithGoogle() {
         district: "No asignado",
         area: "Cámaras",
         role: "siervo",
-        status: "pending",
+        status: "approved",
         password: "google_authenticated"
       };
 
       users.push(newGoogleUser);
       localStorage.setItem("erp_users", JSON.stringify(users));
-      reject(new Error(`Tu cuenta de Google (${email}) ha sido registrada en el sistema de forma local.\n\nPor favor, inicia sesión como Administrador (admin) para aprobarla en la Consola de Admin.`));
+      resolve(newGoogleUser);
     }
   });
 }
