@@ -46,6 +46,21 @@ export const dbPromise = (async () => {
     firebaseDb = getFirestore(firebaseApp);
     firebaseAuth = getAuth(firebaseApp);
     
+    // Intentar sincronizar datos por defecto si la base de datos de Firebase está vacía
+    const usersCol = collection(firebaseDb, "users");
+    const usersSnapshot = await getDocs(usersCol);
+    
+    if (usersSnapshot.empty) {
+      console.log("🔥 Inicializando Firebase con datos semilla...");
+      for (const u of DEFAULT_USERS) {
+        await setDoc(doc(firebaseDb, "users", u.alias), u);
+      }
+      const annCol = collection(firebaseDb, "announcements");
+      for (const a of DEFAULT_ANNOUNCEMENTS) {
+        await setDoc(doc(firebaseDb, "announcements", a.id), a);
+      }
+    }
+    
     return { firebaseDb, firebaseAuth, firestore: { collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc } };
   } catch (err) {
     console.error("❌ Error fatal al inicializar Firebase:", err);
