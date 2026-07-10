@@ -46,32 +46,6 @@ export const dbPromise = (async () => {
     firebaseDb = getFirestore(firebaseApp);
     firebaseAuth = getAuth(firebaseApp);
     
-    // Intentar sincronizar datos por defecto si la base de datos de Firebase está vacía
-    const usersCol = collection(firebaseDb, "users");
-    const usersSnapshot = await getDocs(usersCol);
-    
-    if (usersSnapshot.empty) {
-      console.log("🔥 Inicializando Firebase con datos semilla...");
-      for (const u of DEFAULT_USERS) {
-        await setDoc(doc(firebaseDb, "users", u.alias), u);
-      }
-      const annCol = collection(firebaseDb, "announcements");
-      for (const a of DEFAULT_ANNOUNCEMENTS) {
-        await setDoc(doc(firebaseDb, "announcements", a.id), a);
-      }
-    } else {
-      // ACTUALIZACIÓN DE SEGURIDAD: Si ya existe el admin en Firestore con la clave vieja "admin", la actualizamos a "AdminCDF26"
-      const adminDocRef = doc(firebaseDb, "users", "admin");
-      const adminSnapshot = await getDoc(adminDocRef);
-      if (adminSnapshot.exists()) {
-        const adminData = adminSnapshot.data();
-        if (adminData.password === "admin") {
-          await updateDoc(adminDocRef, { password: "AdminCDF26" });
-          console.log("🔥 Contraseña del Administrador actualizada a AdminCDF26 en Firestore.");
-        }
-      }
-    }
-    
     return { firebaseDb, firebaseAuth, firestore: { collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc } };
   } catch (err) {
     console.error("❌ Error fatal al inicializar Firebase:", err);
