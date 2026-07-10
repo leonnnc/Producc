@@ -25,6 +25,8 @@ let selectedDate = null;       // Fecha seleccionada en el calendario
 let selectedFileBase64 = null; // Archivo cargado en Base64
 let selectedFileType = null;   // Tipo del archivo cargado (image o pdf)
 let selectedFileName = null;   // Nombre del archivo cargado
+let activeAgendaDate = null;   // Fecha seleccionada en agenda activa del Dashboard
+let activeAgendaTime = null;   // Hora seleccionada en agenda activa del Dashboard
 
 // --- ELEMENTOS DEL DOM ---
 const DOM = {
@@ -769,28 +771,28 @@ async function renderActiveAgenda() {
   DOM.activeAgendaContainer.innerHTML = '<div class="loading-spinner"></div>';
   
   try {
-    const target = await getTargetService();
-    if (!target) {
-      DOM.activeAgendaBadge.textContent = '0 Asignados';
-      DOM.activeAgendaContainer.innerHTML = '<p class="placeholder-text">No hay servicios próximos configurados.</p>';
-      return;
+    // Inicializar valores por defecto si no están definidos
+    if (!activeAgendaDate || !activeAgendaTime) {
+      const target = await getTargetService();
+      if (target) {
+        activeAgendaDate = target.date;
+        activeAgendaTime = target.time;
+      } else {
+        const today = new Date();
+        activeAgendaDate = today.toISOString().split('T')[0];
+        activeAgendaTime = "08:00 AM";
+      }
     }
 
     // 1. Obtener la lista de TODOS los usuarios registrados y filtrar solo los que tienen el rol de "siervo"
     const allUsers = await getUsers(currentUser);
     const servants = allUsers.filter(u => u.role === 'siervo');
 
-    // 2. Obtener los anotados para el servicio activo
-    const signups = await getServiceSignups(target.date, target.time);
+    // 2. Obtener los anotados para el servicio seleccionado
+    const signups = await getServiceSignups(activeAgendaDate, activeAgendaTime);
     
     // Contar cuántos están anotados
     DOM.activeAgendaBadge.textContent = `${signups.length} Asignado${signups.length === 1 ? '' : 's'}`;
-
-    // Formatear fecha bonita
-    const parsedDate = new Date(target.date + 'T00:00:00');
-    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-    const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${monthNames[parsedDate.getMonth()]} (${target.time})`;
 
     // Agrupar a todos los siervos registrados por su área
     const groups = {};
@@ -864,15 +866,37 @@ async function renderActiveAgenda() {
 
     DOM.activeAgendaContainer.innerHTML = `
       <div class="active-agenda-card-wrapper">
-        <div class="active-agenda-header-info">
-          <div>
-            <span class="agenda-info-label"><i class="fa-regular fa-clock"></i> Próximo Servicio Activo:</span>
-            <h4 class="agenda-info-date">${formattedDate}</h4>
+        <div class="active-agenda-header-info" style="display:flex; flex-direction:column; gap:8px; align-items:stretch; margin-bottom:12px;">
+          <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+            <i class="fa-regular fa-calendar-days"></i> Seleccionar Servicio (Fecha y Hora)
+          </div>
+          <div class="service-selector-row" style="display:flex; gap:8px;">
+            <input type="date" id="active-agenda-date-select" class="form-control input-sm" value="${activeAgendaDate}" style="flex:1.2; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:4px; padding:4px 8px; font-size:12px; height:32px;">
+            <select id="active-agenda-time-select" class="form-control input-sm" style="flex:1; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:4px; padding:4px 8px; font-size:12px; height:32px;">
+              <option value="08:00 AM" ${activeAgendaTime === '08:00 AM' ? 'selected' : ''}>08:00 AM</option>
+              <option value="11:00 AM" ${activeAgendaTime === '11:00 AM' ? 'selected' : ''}>11:00 AM</option>
+              <option value="01:00 PM" ${activeAgendaTime === '01:00 PM' ? 'selected' : ''}>01:00 PM</option>
+              <option value="07:00 PM" ${activeAgendaTime === '07:00 PM' ? 'selected' : ''}>07:00 PM</option>
+              <option value="07:30 PM" ${activeAgendaTime === '07:30 PM' ? 'selected' : ''}>07:30 PM</option>
+            </select>
           </div>
         </div>
         ${signupsHtml}
       </div>
     `;
+
+    // Asociar eventos de cambio a los inputs de selección de fecha y hora
+    const dateInput = document.getElementById('active-agenda-date-select');
+    const timeSelect = document.getElementById('active-agenda-time-select');
+
+    const handleSelectorChange = () => {
+      activeAgendaDate = dateInput.value;
+      activeAgendaTime = timeSelect.value;
+      renderActiveAgenda();
+    };
+
+    dateInput.addEventListener('change', handleSelectorChange);
+    timeSelect.addEventListener('change', handleSelectorChange);
 
     // Asociar eventos click a los botones de check
     DOM.activeAgendaContainer.querySelectorAll('.btn-toggle-assignment').forEach(btn => {
@@ -884,9 +908,9 @@ async function renderActiveAgenda() {
         
         try {
           if (assigned) {
-            await cancelSignupForService(target.date, target.time, alias);
+            await cancelSignupForService(activeAgendaDate, activeAgendaTime, alias);
           } else {
-            await signupForService(target.date, target.time, targetServant);
+            await signupForService(activeAgendaDate, activeAgendaTime, targetServant);
           }
           // Volver a renderizar
           renderActiveAgenda();
