@@ -4,7 +4,6 @@ import {
   registerUser,
   getUsers,
   updateUserRole,
-  approveUser,
   deleteUser,
   getProgramSheets,
   uploadProgramSheet,
