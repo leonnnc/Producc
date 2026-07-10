@@ -19,7 +19,6 @@ const checkFirebaseStatus = () => {
 
 checkFirebaseStatus();
 
-// --- DATOS INICIALES SEMILLA PARA LOCALSTORAGE ---
 const DEFAULT_USERS = [
   {
     alias: "admin",
@@ -31,72 +30,6 @@ const DEFAULT_USERS = [
     role: "admin",
     status: "approved",
     password: "AdminCDF26" // En producción real usaría hash, para demo es texto plano
-  },
-  {
-    alias: "slider1",
-    name: "Carlos Mendoza (Super Líder)",
-    email: "carlos@produccion.com",
-    phone: "+51 999888777",
-    district: "Miraflores",
-    area: "Director",
-    role: "slider",
-    status: "approved",
-    password: "slider"
-  },
-  {
-    alias: "lider_cam",
-    name: "Sofía Rodríguez (Líder)",
-    email: "sofia.cam@produccion.com",
-    phone: "+51 912345678",
-    district: "Surco",
-    area: "Cámaras",
-    role: "lider",
-    status: "approved",
-    password: "lider"
-  },
-  {
-    alias: "co_lider_sw",
-    name: "Mateo Pérez (Co-Líder)",
-    email: "mateo.sw@produccion.com",
-    phone: "+51 987123456",
-    district: "San Borja",
-    area: "Switchers",
-    role: "co_lider",
-    status: "approved",
-    password: "co"
-  },
-  {
-    alias: "siervo_cam1",
-    name: "Juan Gómez (Siervo)",
-    email: "juan.cam@produccion.com",
-    phone: "+51 934567890",
-    district: "Chorrillos",
-    area: "Cámaras",
-    role: "siervo",
-    status: "approved",
-    password: "siervo"
-  },
-  {
-    alias: "siervo_sw1",
-    name: "Lucía Fernández (Siervo)",
-    email: "lucia.sw@produccion.com",
-    phone: "+51 945678901",
-    district: "La Molina",
-    area: "Switchers",
-    role: "siervo",
-    status: "approved",
-    password: "siervo"
-  },
-  {
-    alias: "siervo_pendiente",
-    name: "Pedro Alva (Pendiente)",
-    email: "pedro@produccion.com",
-    phone: "+51 955667788",
-    district: "San Miguel",
-    area: "Audio",
-    role: "siervo",
-    status: "pending",
-    password: "siervo"
   }
 ];
 
