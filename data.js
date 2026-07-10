@@ -52,29 +52,20 @@ const DEFAULT_ANNOUNCEMENTS = [
 
 // Inicialización de LocalStorage
 const initLocalStorage = () => {
-  if (!localStorage.getItem("erp_users")) {
+  // Limpieza única en LocalStorage de cualquier usuario antiguo excepto el admin principal
+  if (!localStorage.getItem("erp_users_wiped_v3")) {
+    localStorage.setItem("erp_users", JSON.stringify(DEFAULT_USERS));
+    localStorage.setItem("erp_users_wiped_v3", "true");
+  } else if (!localStorage.getItem("erp_users")) {
     localStorage.setItem("erp_users", JSON.stringify(DEFAULT_USERS));
   } else {
     // Si ya existe, nos aseguramos de actualizar la clave de admin si tiene el default anterior
     let users = JSON.parse(localStorage.getItem("erp_users") || "[]");
-    
-    // Limpieza activa de usuarios simulados
-    const originalLength = users.length;
-    users = users.filter(u => u.alias === "admin" || !["slider1", "lider_cam", "co_lider_sw", "siervo_cam1", "siervo_sw1", "siervo_pendiente"].includes(u.alias));
-    
-    // Auto-aprobar cualquier usuario pendiente local (ya que quitamos aprobación manual)
-    users.forEach(u => {
-      if (u.status === "pending") {
-        u.status = "approved";
-      }
-    });
-
     const adminIdx = users.findIndex(u => u.alias === "admin");
     if (adminIdx !== -1 && users[adminIdx].password === "admin") {
       users[adminIdx].password = "AdminCDF26";
+      localStorage.setItem("erp_users", JSON.stringify(users));
     }
-    
-    localStorage.setItem("erp_users", JSON.stringify(users));
   }
   if (!localStorage.getItem("erp_announcements")) {
     localStorage.setItem("erp_announcements", JSON.stringify(DEFAULT_ANNOUNCEMENTS));
@@ -129,25 +120,19 @@ if (isFirebaseActive) {
           }
         }
 
-        // LIMPIEZA DE GENTE SIMULADA EN FIRESTORE
-        const mockAliases = ["slider1", "lider_cam", "co_lider_sw", "siervo_cam1", "siervo_sw1", "siervo_pendiente"];
-        for (const alias of mockAliases) {
-          const mockDocRef = doc(firebaseDb, "users", alias);
-          const mockSnapshot = await getDoc(mockDocRef);
-          if (mockSnapshot.exists()) {
-            await deleteDoc(mockDocRef);
-            console.log(`🔥 Borrado usuario simulado de Firestore: ${alias}`);
+        // LIMPIEZA ÚNICA EN FIRESTORE DE CUALQUIER USUARIO VIEJO EXCEPTO EL ADMIN
+        const metaDocRef = doc(firebaseDb, "system_metadata", "wiped_v3");
+        const metaSnapshot = await getDoc(metaDocRef);
+        if (!metaSnapshot.exists()) {
+          const allUsersSnapshot = await getDocs(usersCol);
+          for (const userDoc of allUsersSnapshot.docs) {
+            if (userDoc.id !== "admin") {
+              await deleteDoc(userDoc.ref);
+              console.log(`🔥 Borrado usuario antiguo de Firestore: ${userDoc.id}`);
+            }
           }
-        }
-
-        // AUTO-APROBAR USUARIOS PENDIENTES EXISTENTES EN FIRESTORE (ya que quitamos aprobación manual)
-        const allUsersSnapshot = await getDocs(usersCol);
-        for (const userDoc of allUsersSnapshot.docs) {
-          const uData = userDoc.data();
-          if (uData.status === "pending") {
-            await updateDoc(userDoc.ref, { status: "approved" });
-            console.log(`🔥 Auto-aprobado usuario en Firestore: ${uData.alias}`);
-          }
+          await setDoc(metaDocRef, { wiped: true, timestamp: new Date().toISOString() });
+          console.log("🔥 Limpieza única de Firestore completada con éxito.");
         }
       }
       return { firebaseDb, firebaseAuth, firestore: { collection, doc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc } };
@@ -193,10 +178,6 @@ export async function loginUser(usernameOrEmail, password) {
         throw new Error("Contraseña incorrecta.");
       }
       
-      if (userData.status === "pending") {
-        throw new Error("Tu cuenta aún está pendiente de aprobación por un Administrador o S-Líder.");
-      }
-      
       return userData;
     }
   }
@@ -213,10 +194,6 @@ export async function loginUser(usernameOrEmail, password) {
     throw new Error("Contraseña incorrecta.");
   }
   
-  if (user.status === "pending") {
-    throw new Error("Tu cuenta aún está pendiente de aprobación por un Administrador o S-Líder.");
-  }
-  
   return user;
 }
 
@@ -227,8 +204,7 @@ export async function loginUser(usernameOrEmail, password) {
 export async function registerUser(userData) {
   const newUser = {
     ...userData,
-    role: "siervo", // Por defecto es Siervo hasta que el Admin/SLíder lo modifique
-    status: "approved" // Aprobación instantánea
+    role: "siervo" // Por defecto es Siervo hasta que el Admin/SLíder lo modifique
   };
 
   if (isFirebaseActive && dbPromise) {
@@ -304,8 +280,8 @@ export async function getUsers(currentUser) {
     return allUsers.filter(u => u.role !== "admin" && u.area === currentUser.area);
   }
   
-  // 4. Si el usuario es Siervo, solo ve a miembros aprobados de su misma área y que no sean Admin
-  return allUsers.filter(u => u.role !== "admin" && u.area === currentUser.area && u.status === "approved");
+  // 4. Si el usuario es Siervo, solo ve a miembros de su misma área y que no sean Admin
+  return allUsers.filter(u => u.role !== "admin" && u.area === currentUser.area);
 }
 
 /**
@@ -641,7 +617,6 @@ export async function loginUserWithGoogle() {
           district: "No asignado",
           area: "Otros",
           role: "siervo",
-          status: "approved",
           password: "google_authenticated"
         };
         
@@ -683,7 +658,6 @@ export async function loginUserWithGoogle() {
         district: "No asignado",
         area: "Cámaras",
         role: "siervo",
-        status: "approved",
         password: "google_authenticated"
       };
 

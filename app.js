@@ -1356,8 +1356,8 @@ async function renderTeamDirectory() {
   try {
     const list = await getUsers(currentUser);
     
-    // Filtrar solo usuarios aprobados
-    let filtered = list.filter(u => u.status === 'approved');
+    // Filtrar solo usuarios aprobados (todos aprobados por defecto)
+    let filtered = list;
 
     // Filtro por término de búsqueda (Alias o Nombre)
     const term = DOM.searchTeamInput.value.trim().toLowerCase();
