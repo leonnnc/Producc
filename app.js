@@ -74,8 +74,6 @@ const DOM = {
   statAreaMembers: document.getElementById('stat-area-members'),
   statMonthlyServices: document.getElementById('stat-monthly-services'),
   statUploadedPrograms: document.getElementById('stat-uploaded-programs'),
-  statPendingUsers: document.getElementById('stat-pending-users'),
-  adminStatCard: document.getElementById('admin-stat-card'),
   activeProgramContainer: document.getElementById('active-program-container'),
   activeAgendaBadge: document.getElementById('active-agenda-badge'),
   activeAgendaContainer: document.getElementById('active-agenda-container'),
@@ -306,14 +304,14 @@ function setupEventListeners() {
 
     try {
       await registerUser(userData);
-      showSuccessOverlay("Registro Completado", "Tu solicitud de acceso ha sido enviada al liderazgo.", () => {
+      showSuccessOverlay("Registro Completado", "Tu cuenta ha sido creada exitosamente. Ya puedes iniciar sesión.", () => {
         DOM.registerForm.reset();
         DOM.registerForm.classList.add('hidden');
         DOM.loginForm.classList.remove('hidden');
         DOM.authSubtitle.textContent = "Ingresa tus credenciales para acceder al sistema";
         
         // Mostrar alerta de éxito
-        DOM.authAlert.textContent = "¡Solicitud enviada con éxito! Espera a que un administrador o super líder apruebe tu cuenta para iniciar sesión.";
+        DOM.authAlert.textContent = "¡Registro completado con éxito! Ya puedes iniciar sesión con tus credenciales.";
         DOM.authAlert.className = "alert-box success";
         DOM.authAlert.classList.remove('hidden');
       });
@@ -540,11 +538,9 @@ function configureRolePermissions() {
   
   // Consola de Administración (Pestaña Secreta)
   if (isStaff) {
-    DOM.adminStatCard.classList.remove('hidden');
     DOM.btnOpenAnnModal.classList.remove('hidden');
     DOM.uploadPanelContainer.classList.remove('hidden');
   } else {
-    DOM.adminStatCard.classList.add('hidden');
     DOM.btnOpenAnnModal.classList.add('hidden');
     DOM.uploadPanelContainer.classList.add('hidden');
   }
@@ -621,8 +617,8 @@ async function renderDashboardHome() {
   // Estadísticas
   try {
     const allUsers = await getUsers(currentUser);
-    // Filtrar miembros aprobados de su área
-    const areaMembers = allUsers.filter(u => u.area === currentUser.area && u.status === 'approved');
+    // Filtrar miembros de su área
+    const areaMembers = allUsers.filter(u => u.area === currentUser.area);
     DOM.statAreaMembers.textContent = areaMembers.length;
     
     // Conteo de servicios fijos en el mes actual
@@ -631,12 +627,6 @@ async function renderDashboardHome() {
     // Conteo de programaciones totales subidas
     const progs = await getProgramSheets();
     DOM.statUploadedPrograms.textContent = progs.length;
-
-    // Registros pendientes (Solo visible para Admin/SLíder)
-    if (currentUser.role === 'admin' || currentUser.role === 'slider') {
-      const pending = allUsers.filter(u => u.status === 'pending');
-      DOM.statPendingUsers.textContent = pending.length;
-    }
   } catch (err) {
     console.error("Error al calcular estadísticas:", err);
   }
@@ -835,6 +825,8 @@ async function renderActiveAgenda() {
       </div>
     `;
 
+    const isSiervo = currentUser.role === 'siervo';
+
     DOM.activeAgendaContainer.innerHTML = `
       <div class="active-agenda-card-wrapper">
         <div class="active-agenda-header-info">
@@ -842,33 +834,37 @@ async function renderActiveAgenda() {
             <span class="agenda-info-label"><i class="fa-regular fa-clock"></i> Próximo Servicio Activo:</span>
             <h4 class="agenda-info-date">${formattedDate}</h4>
           </div>
-          <button id="btn-toggle-active-signup" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
-            ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Quitarme' : '<i class="fa-solid fa-user-plus"></i> Anotarme'}
-          </button>
+          ${isSiervo ? `
+            <button id="btn-toggle-active-signup" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
+              ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Quitarme' : '<i class="fa-solid fa-user-plus"></i> Anotarme'}
+            </button>
+          ` : ''}
         </div>
         ${signupsHtml}
       </div>
     `;
 
-    // Hook del botón de anotarse/quitarse
-    document.getElementById('btn-toggle-active-signup').addEventListener('click', async () => {
-      try {
-        if (isSignedUp) {
-          await cancelSignupForService(target.date, target.time, currentUser.alias);
-        } else {
-          await signupForService(target.date, target.time, currentUser);
+    // Hook del botón de anotarse/quitarse (solo si es siervo)
+    if (isSiervo) {
+      document.getElementById('btn-toggle-active-signup').addEventListener('click', async () => {
+        try {
+          if (isSignedUp) {
+            await cancelSignupForService(target.date, target.time, currentUser.alias);
+          } else {
+            await signupForService(target.date, target.time, currentUser);
+          }
+          // Volver a renderizar
+          renderActiveAgenda();
+          // Si la sección activa es Agenda, también refrescarla
+          const activeSection = document.querySelector('.content-section:not(.hidden)');
+          if (activeSection && activeSection.id === 'sec-agenda') {
+            renderCalendar();
+          }
+        } catch (err) {
+          alert("Error al guardar la asignación: " + err.message);
         }
-        // Volver a renderizar
-        renderActiveAgenda();
-        // Si la sección activa es Agenda, también refrescarla
-        const activeSection = document.querySelector('.content-section:not(.hidden)');
-        if (activeSection && activeSection.id === 'sec-agenda') {
-          renderCalendar();
-        }
-      } catch (err) {
-        alert("Error al guardar la asignación: " + err.message);
-      }
-    });
+      });
+    }
 
   } catch (err) {
     console.error("Error al cargar la agenda activa:", err);
@@ -882,21 +878,19 @@ async function renderDashboardTeam() {
   
   try {
     const list = await getUsers(currentUser);
-    // Filtrar solo usuarios aprobados
-    const approved = list.filter(u => u.status === 'approved');
-    DOM.dashboardTeamBadge.textContent = `${approved.length} Miembro${approved.length === 1 ? '' : 's'}`;
+    DOM.dashboardTeamBadge.textContent = `${list.length} Miembro${list.length === 1 ? '' : 's'}`;
 
-    if (approved.length === 0) {
-      DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">No hay miembros aprobados en el equipo.</p>';
+    if (list.length === 0) {
+      DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">No hay miembros en el equipo.</p>';
       return;
     }
 
     // Ordenar miembros por área
-    approved.sort((a, b) => a.area.localeCompare(b.area));
+    list.sort((a, b) => a.area.localeCompare(b.area));
 
     DOM.dashboardTeamContainer.innerHTML = `
       <div class="dashboard-team-list">
-        ${approved.map(u => `
+        ${list.map(u => `
           <div class="dashboard-team-item">
             <div class="dashboard-team-avatar">
               <i class="fa-solid fa-user"></i>
@@ -1185,13 +1179,19 @@ async function openReserveModal(dateStr, slot, formattedDate) {
           <span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Servicio finalizado. Registro cerrado.</span>
         </div>
       `;
-    } else {
+    } else if (currentUser.role === 'siervo') {
       actionPanelHtml = `
         <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid var(--border-glass);">
           <span style="font-size:12px; color:white; font-weight:500;">Mi Reservación:</span>
           <button id="btn-modal-reserve-action" class="btn btn-sm ${isSignedUp ? 'btn-danger' : 'btn-primary'}">
             ${isSignedUp ? '<i class="fa-solid fa-user-minus"></i> Cancelar Reserva' : '<i class="fa-solid fa-user-plus"></i> Reservar Lugar'}
           </button>
+        </div>
+      `;
+    } else {
+      actionPanelHtml = `
+        <div style="background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); text-align:center;">
+          <span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-circle-info"></i> Solo los Siervos pueden anotarse en los turnos de servicio.</span>
         </div>
       `;
     }
@@ -1207,8 +1207,8 @@ async function openReserveModal(dateStr, slot, formattedDate) {
       </div>
     `;
 
-    // Escuchador del botón de reserva en el modal (solo si no es pasado)
-    if (!isPast) {
+    // Escuchador del botón de reserva en el modal (solo si no es pasado y es siervo)
+    if (!isPast && currentUser.role === 'siervo') {
       document.getElementById('btn-modal-reserve-action').addEventListener('click', async () => {
         try {
           if (isSignedUp) {
