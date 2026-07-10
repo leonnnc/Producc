@@ -806,31 +806,34 @@ async function renderActiveAgenda() {
     });
 
     let signupsHtml = '';
-    if (signups.length === 0) {
-      signupsHtml = `
-        <div style="text-align: center; padding: 15px 0;">
-          <p class="placeholder-text" style="margin-bottom: 0;">Ningún miembro se ha anotado en este servicio aún.</p>
-        </div>
-      `;
-    } else {
-      signupsHtml = `
-        <div class="agenda-group-list">
-          ${Object.keys(groups).map(area => `
-            <div class="agenda-group-area">
-              <span class="agenda-group-title"><i class="fa-solid fa-people-group"></i> ${area}</span>
-              <div class="agenda-group-members">
-                ${groups[area].map(m => `
-                  <div class="agenda-member-tag">
-                    <i class="fa-solid fa-user-check"></i>
-                    <span>${m.userName} <small style="color:var(--text-muted);">(${m.userAlias})</small></span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
+    
+    // Crear líneas de cuaderno planas
+    const notebookLines = [];
+    Object.keys(groups).forEach(area => {
+      notebookLines.push({ type: 'header', text: area });
+      groups[area].forEach(m => {
+        notebookLines.push({ type: 'member', name: m.userName, alias: m.userAlias });
+      });
+    });
+
+    // Rellenar con líneas vacías hasta tener al menos 6 para diseño de cuaderno
+    while (notebookLines.length < 6) {
+      notebookLines.push({ type: 'empty' });
     }
+
+    signupsHtml = `
+      <div class="notebook-agenda">
+        ${notebookLines.map(line => {
+          if (line.type === 'header') {
+            return `<div class="notebook-line notebook-header"><i class="fa-solid fa-folder-open text-cyan" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
+          } else if (line.type === 'member') {
+            return `<div class="notebook-line notebook-member"><i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i> <span>${line.name} <small style="color:var(--text-muted);">(${line.alias})</small></span></div>`;
+          } else {
+            return `<div class="notebook-line"></div>`;
+          }
+        }).join('')}
+      </div>
+    `;
 
     DOM.activeAgendaContainer.innerHTML = `
       <div class="active-agenda-card-wrapper">
@@ -1146,31 +1149,34 @@ async function openReserveModal(dateStr, slot, formattedDate) {
     });
 
     let signupsHtml = '';
-    if (signups.length === 0) {
-      signupsHtml = `
-        <div style="text-align: center; padding: 20px 0;">
-          <p class="placeholder-text" style="font-size:12px;"><i class="fa-solid fa-users-slash" style="font-size:24px; margin-bottom:8px; display:block; color:var(--text-muted);"></i> Nadie se ha anotado en este turno aún.</p>
-        </div>
-      `;
-    } else {
-      signupsHtml = `
-        <div class="agenda-group-list" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
-          ${Object.keys(groups).map(area => `
-            <div class="agenda-group-area" style="margin-bottom: 12px;">
-              <span class="agenda-group-title" style="font-size: 9px; font-weight:600; color:var(--text-muted); text-transform:uppercase;"><i class="fa-solid fa-people-group"></i> ${area}</span>
-              <div class="agenda-group-members" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
-                ${groups[area].map(m => `
-                  <div class="agenda-member-tag" style="font-size: 11px; padding: 4px 8px; background:rgba(255,255,255,0.04); border-radius:4px; border:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:5px; color:white;">
-                    <i class="fa-solid fa-user-check" style="color:var(--color-cyan);"></i>
-                    <span>${m.userName} <small style="color:var(--text-muted);">(${m.userAlias})</small></span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
+    
+    // Crear líneas de cuaderno planas
+    const notebookLines = [];
+    Object.keys(groups).forEach(area => {
+      notebookLines.push({ type: 'header', text: area });
+      groups[area].forEach(m => {
+        notebookLines.push({ type: 'member', name: m.userName, alias: m.userAlias });
+      });
+    });
+
+    // Rellenar con líneas vacías hasta tener al menos 6 para diseño de cuaderno
+    while (notebookLines.length < 6) {
+      notebookLines.push({ type: 'empty' });
     }
+
+    signupsHtml = `
+      <div class="notebook-agenda" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
+        ${notebookLines.map(line => {
+          if (line.type === 'header') {
+            return `<div class="notebook-line notebook-header"><i class="fa-solid fa-folder-open text-cyan" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
+          } else if (line.type === 'member') {
+            return `<div class="notebook-line notebook-member"><i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i> <span>${line.name} <small style="color:var(--text-muted);">(${line.alias})</small></span></div>`;
+          } else {
+            return `<div class="notebook-line"></div>`;
+          }
+        }).join('')}
+      </div>
+    `;
 
     let actionPanelHtml = '';
     if (isPast) {
