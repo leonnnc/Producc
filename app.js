@@ -824,52 +824,35 @@ async function renderActiveAgenda() {
     };
 
     let signupsHtml = '';
-    
-    // Crear líneas de cuaderno planas para todas las asignaciones
-    const notebookLines = [];
-    Object.keys(serviceGroups).forEach(key => {
-      notebookLines.push({ type: 'header', text: formatKey(key) });
-      serviceGroups[key].forEach(m => {
-        notebookLines.push({ type: 'member', name: m.userName, alias: m.userAlias, area: m.userArea });
-      });
-    });
-
-    // Rellenar con líneas vacías hasta tener al menos 6 para diseño de cuaderno
-    while (notebookLines.length < 6) {
-      notebookLines.push({ type: 'empty' });
-    }
 
     if (upcomingSignups.length === 0) {
       signupsHtml = `
-        <div class="notebook-agenda">
-          <div class="notebook-line placeholder-text" style="color:var(--text-muted); font-size:12px; justify-content:center; width:100%;"><i class="fa-solid fa-users-slash"></i> Ningún siervo se ha anotado aún.</div>
-          <div class="notebook-line"></div>
-          <div class="notebook-line"></div>
-          <div class="notebook-line"></div>
-          <div class="notebook-line"></div>
-          <div class="notebook-line"></div>
-        </div>
+        <p class="placeholder-text" style="text-align:center; padding: 20px 0;">
+          <i class="fa-solid fa-users-slash" style="font-size:24px; margin-bottom:8px; display:block; color:var(--text-muted);"></i>
+          Ningún siervo se ha anotado en ningún servicio aún.
+        </p>
       `;
     } else {
       signupsHtml = `
-        <div class="notebook-agenda">
-          ${notebookLines.map(line => {
-            if (line.type === 'header') {
-              return `<div class="notebook-line notebook-header" style="color:var(--color-cyan);"><i class="fa-regular fa-clock" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
-            } else if (line.type === 'member') {
-              return `
-                <div class="notebook-line notebook-member" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding-right:10px;">
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i>
-                    <span>${line.name} <small style="color:var(--text-muted);">(@${line.alias})</small></span>
+        <div class="agenda-flat-list">
+          ${Object.keys(serviceGroups).map(key => `
+            <div class="agenda-flat-service">
+              <div class="agenda-flat-service-header">
+                <i class="fa-regular fa-clock"></i> ${formatKey(key).toUpperCase()}
+              </div>
+              <div class="agenda-flat-members">
+                ${serviceGroups[key].map(m => `
+                  <div class="agenda-flat-member">
+                    <div class="agenda-flat-member-info">
+                      <i class="fa-solid fa-user-check text-cyan" style="font-size:11px;"></i>
+                      <span>${m.userName} <small style="color:var(--text-muted);">(@${m.userAlias})</small></span>
+                    </div>
+                    <span class="agenda-flat-member-area">${m.userArea}</span>
                   </div>
-                  <span style="font-size:10px; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; font-weight:600;">${line.area}</span>
-                </div>
-              `;
-            } else {
-              return `<div class="notebook-line"></div>`;
-            }
-          }).join('')}
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
         </div>
       `;
     }
@@ -1161,65 +1144,46 @@ async function openReserveModal(dateStr, slot, formattedDate) {
       groups[s.area].push(s);
     });
 
-    let signupsHtml = '';
-    
-    // Crear líneas de cuaderno planas para todos los siervos
-    const notebookLines = [];
-    Object.keys(groups).forEach(area => {
-      notebookLines.push({ type: 'header', text: area });
-      groups[area].forEach(servant => {
-        const isAssigned = signups.some(x => x.userAlias === servant.alias);
-        notebookLines.push({
-          type: 'member',
-          servant: servant,
-          isAssigned: isAssigned
-        });
-      });
-    });
+    let signupsHtml = `
+      <div class="agenda-flat-list" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
+        ${Object.keys(groups).map(area => `
+          <div class="agenda-flat-service" style="margin-bottom: 8px;">
+            <div class="agenda-flat-service-header" style="font-size: 10px; border-bottom-color: rgba(255, 255, 255, 0.05); padding-bottom: 4px; margin-bottom: 8px;">
+              <i class="fa-solid fa-people-group"></i> ${area.toUpperCase()}
+            </div>
+            <div class="agenda-flat-members">
+              ${groups[area].map(s => {
+                const isAssigned = signups.some(x => x.userAlias === s.alias);
+                const canToggle = !isPast && (currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias);
+                
+                let actionHtml = '';
+                if (canToggle) {
+                  actionHtml = `
+                    <button class="btn-modal-toggle-assignment" data-alias="${s.alias}" data-assigned="${isAssigned}" style="background:none; border:none; padding:2px 6px; cursor:pointer; color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; display:flex; align-items:center;">
+                      <i class="${isAssigned ? 'fa-solid fa-square-check' : 'fa-regular fa-square'}"></i>
+                    </button>
+                  `;
+                } else {
+                  actionHtml = `
+                    <span style="color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; padding:2px 6px; display:flex; align-items:center;">
+                      <i class="${isAssigned ? 'fa-solid fa-check' : 'fa-solid fa-minus'}"></i>
+                    </span>
+                  `;
+                }
 
-    // Rellenar con líneas vacías hasta tener al menos 6 para diseño de cuaderno
-    while (notebookLines.length < 6) {
-      notebookLines.push({ type: 'empty' });
-    }
-
-    signupsHtml = `
-      <div class="notebook-agenda" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
-        ${notebookLines.map(line => {
-          if (line.type === 'header') {
-            return `<div class="notebook-line notebook-header"><i class="fa-solid fa-folder-open text-cyan" style="font-size:10px;"></i> <strong>${line.text.toUpperCase()}</strong></div>`;
-          } else if (line.type === 'member') {
-            const s = line.servant;
-            const isAssigned = line.isAssigned;
-            const canToggle = !isPast && (currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias);
-            
-            let actionHtml = '';
-            if (canToggle) {
-              actionHtml = `
-                <button class="btn-modal-toggle-assignment" data-alias="${s.alias}" data-assigned="${isAssigned}" style="background:none; border:none; padding:2px 6px; cursor:pointer; color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; display:flex; align-items:center;">
-                  <i class="${isAssigned ? 'fa-solid fa-square-check' : 'fa-regular fa-square'}"></i>
-                </button>
-              `;
-            } else {
-              actionHtml = `
-                <span style="color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; padding:2px 6px; display:flex; align-items:center;">
-                  <i class="${isAssigned ? 'fa-solid fa-check' : 'fa-solid fa-minus'}"></i>
-                </span>
-              `;
-            }
-
-            return `
-              <div class="notebook-line notebook-member" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding-right:10px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <i class="fa-solid fa-pencil text-amber" style="font-size:10px;"></i>
-                  <span style="${isAssigned ? 'text-decoration:none; font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
-                </div>
-                ${actionHtml}
-              </div>
-            `;
-          } else {
-            return `<div class="notebook-line"></div>`;
-          }
-        }).join('')}
+                return `
+                  <div class="agenda-flat-member">
+                    <div class="agenda-flat-member-info">
+                      <i class="fa-solid fa-user-check text-cyan" style="font-size:11px;"></i>
+                      <span style="${isAssigned ? 'font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
+                    </div>
+                    ${actionHtml}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `).join('')}
       </div>
     `;
 

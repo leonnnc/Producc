@@ -1938,56 +1938,64 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-muted);
 }
 
-/* DISEÑO DE CUADERNO / NOTEPAD PARA LA AGENDA */
-.notebook-agenda {
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* LISTA DE AGENDA PLANA */
+.agenda-flat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.agenda-flat-service {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  position: relative;
-  padding: 10px 10px 10px 45px; /* spacing for the left margin line */
-  overflow: hidden;
-  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
-  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 100% 28px; /* height of each line */
-  line-height: 28px;
+  padding: 12px 14px;
 }
 
-/* Línea roja vertical de margen del cuaderno */
-.notebook-agenda::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 35px;
-  width: 1px;
-  height: 100%;
-  background-color: rgba(239, 68, 68, 0.35); /* línea roja de margen */
+.agenda-flat-service-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.notebook-line {
-  height: 28px;
-  line-height: 28px;
+.agenda-flat-members {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agenda-flat-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   color: var(--text-light);
+  padding: 2px 0;
+}
+
+.agenda-flat-member-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.notebook-header {
-  color: var(--color-cyan);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  font-size: 10px;
-}
-
-.notebook-member {
-  font-family: 'Outfit', sans-serif;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.notebook-member span {
+.agenda-flat-member-info span {
   font-size: 12px;
+}
+
+.agenda-flat-member-area {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
 }
