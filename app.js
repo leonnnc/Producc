@@ -194,19 +194,12 @@ function startClock() {
   setInterval(updateClock, 1000);
 }
 
-// Indicador de modo (Firebase vs LocalStorage)
+// Indicador de modo del sistema
 function initSystemModeIndicator() {
-  if (isFirebaseConfigured()) {
-    DOM.systemModeIndicator.innerHTML = `
-      <span class="status-dot green"></span>
-      <span class="status-text">Modo Nube (Firebase)</span>
-    `;
-  } else {
-    DOM.systemModeIndicator.innerHTML = `
-      <span class="status-dot amber"></span>
-      <span class="status-text">Modo Local (LocalStorage)</span>
-    `;
-  }
+  DOM.systemModeIndicator.innerHTML = `
+    <span class="status-dot green"></span>
+    <span class="status-text">Modo Nube (Firebase)</span>
+  `;
 }
 
 // Agregar logs al panel de auditoría (Admin)
@@ -1397,7 +1390,7 @@ async function renderTeamDirectory() {
     }
 
     if (filtered.length === 0) {
-      DOM.teamTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-text" style="text-align:center;">No se encontraron miembros del equipo aprobados.</td></tr>';
+      DOM.teamTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-text" style="text-align:center;">No se encontraron miembros del equipo.</td></tr>';
       return;
     }
 

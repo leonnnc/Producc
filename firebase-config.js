@@ -1,7 +1,5 @@
 // Configuración de Firebase Firestore y Authentication.
 // Rellena estos campos con las credenciales de tu proyecto de Firebase.
-// Si se mantienen con los valores de marcador de posición (placeholder),
-// el sistema cambiará de forma automática y transparente a modo LocalStorage (Base de datos local).
 
 export const firebaseConfig = {
   apiKey: "AIzaSyA2NRJ7-Ih0xsQw4_iCcLo2YnUT3ZgHDOQ",
@@ -13,8 +11,8 @@ export const firebaseConfig = {
 };
 
 /**
- * Verifica si las credenciales de Firebase son válidas y no son los marcadores de posición predeterminados.
- * @returns {boolean} True si Firebase está configurado correctamente, False en caso contrario.
+ * Verifica si las credenciales de Firebase están configuradas.
+ * @returns {boolean} True si Firebase está configurado correctamente.
  */
 export function isFirebaseConfigured() {
   return (
