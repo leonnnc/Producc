@@ -201,7 +201,7 @@
           </li>
           <li>
             <a href="#" class="nav-item" data-target="sec-team" id="nav-team">
-              <i class="fa-solid fa-users"></i> <span>Gestión de Equipo</span>
+              <i class="fa-solid fa-users"></i> <span>Usuarios</span>
             </a>
           </li>
 
@@ -249,7 +249,7 @@
                 <i class="fa-solid fa-users-viewfinder"></i>
               </div>
               <div class="stat-content">
-                <span class="stat-label">Miembros en el Área</span>
+                <span class="stat-label">Usuarios en el Área</span>
                 <span class="stat-value" id="stat-area-members">0</span>
               </div>
             </div>
@@ -302,8 +302,8 @@
             <!-- Bloque de Lista de Usuarios (Directorio) -->
             <div class="dashboard-col glass-panel dashboard-team-card">
               <div class="card-header">
-                <h3><i class="fa-solid fa-users text-indigo"></i> Directorio de Miembros Activos</h3>
-                <span class="badge badge-active" id="dashboard-team-badge">0 Miembros</span>
+                <h3><i class="fa-solid fa-users text-indigo"></i> Directorio de Usuarios</h3>
+                <span class="badge badge-active" id="dashboard-team-badge">0 Usuarios</span>
               </div>
               <div class="card-body" id="dashboard-team-container">
                 <!-- Se inyecta dinámicamente -->
@@ -365,6 +365,19 @@
                 <table class="agenda-matrix-table" id="wednesday-matrix-table">
                   <!-- Generado por JS -->
                 </table>
+              </div>
+            </div>
+
+            <!-- Tabla de Eventos Especiales -->
+            <div class="glass-panel agenda-table-card" style="margin-top: 15px;">
+              <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <h3><i class="fa-solid fa-star text-cyan"></i> Eventos Especiales</h3>
+                <button id="btn-create-special-event-trigger" class="btn btn-primary btn-xs staff-only hidden">
+                  <i class="fa-solid fa-plus"></i> Crear Evento Especial
+                </button>
+              </div>
+              <div class="card-body" id="special-events-container">
+                <!-- Generado por JS -->
               </div>
             </div>
 
@@ -439,11 +452,11 @@
           </div>
         </section>
 
-        <!-- ==================== SECCIÓN: GESTIÓN DE EQUIPO ==================== -->
+        <!-- ==================== SECCIÓN: USUARIOS ==================== -->
         <section id="sec-team" class="content-section hidden">
           <div class="glass-panel team-panel">
             <div class="card-header flex-header-wrap">
-              <h3><i class="fa-solid fa-users"></i> Directorio del Equipo de Producción</h3>
+              <h3><i class="fa-solid fa-users"></i> Directorio de Usuarios</h3>
               
               <!-- Filtros de búsqueda -->
               <div class="team-filters">
@@ -476,7 +489,7 @@
               <table class="data-table" id="team-table">
                 <thead>
                   <tr>
-                    <th>Miembro</th>
+                    <th>Usuario</th>
                     <th>Contacto</th>
                     <th>Ubicación</th>
                     <th>Área</th>
@@ -545,6 +558,33 @@
       </div>
       <div class="modal-body" id="reserve-modal-body-content">
         <!-- Inyectado dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Crear Evento Especial -->
+  <div id="special-event-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3>Crear Evento Especial</h3>
+        <button id="btn-close-special-event-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="special-event-form">
+          <div class="form-group">
+            <label for="se-name">Nombre del Evento</label>
+            <input type="text" id="se-name" required placeholder="Ej: Vigilia General, Reunión Extraordinaria">
+          </div>
+          <div class="form-group">
+            <label for="se-date">Fecha del Evento</label>
+            <input type="date" id="se-date" required min="2026-01-01">
+          </div>
+          <div class="form-group">
+            <label for="se-time">Hora del Evento</label>
+            <input type="text" id="se-time" required placeholder="Ej: 06:00 PM, 10:00 AM">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Crear Evento</button>
+        </form>
       </div>
     </div>
   </div>

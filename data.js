@@ -471,3 +471,41 @@ export async function getAllServiceSignups() {
   const querySnapshot = await fb.firestore.getDocs(agendaRef);
   return querySnapshot.docs.map(doc => doc.data());
 }
+
+/**
+ * Crea un evento especial en la base de datos.
+ */
+export async function createSpecialEvent(name, date, time, currentUser) {
+  if (currentUser.role !== "admin" && currentUser.role !== "slider" && currentUser.role !== "lider") {
+    throw new Error("No tienes permisos suficientes para crear eventos especiales.");
+  }
+  const id = `se_${Date.now()}`;
+  const event = { id, name, date, time, createdBy: currentUser.name, timestamp: new Date().toISOString() };
+  const fb = await dbPromise;
+  const docRef = fb.firestore.doc(fb.firebaseDb, "special_events", id);
+  await fb.firestore.setDoc(docRef, event);
+  return event;
+}
+
+/**
+ * Obtiene eventos especiales del mes seleccionado.
+ */
+export async function getSpecialEvents(yearMonthStr) {
+  const fb = await dbPromise;
+  const eventsCol = fb.firestore.collection(fb.firebaseDb, "special_events");
+  const snap = await fb.firestore.getDocs(eventsCol);
+  const list = snap.docs.map(doc => doc.data());
+  return list.filter(ev => ev.date.startsWith(yearMonthStr));
+}
+
+/**
+ * Elimina un evento especial.
+ */
+export async function deleteSpecialEvent(id, currentUser) {
+  if (currentUser.role !== "admin" && currentUser.role !== "slider" && currentUser.role !== "lider") {
+    throw new Error("No tienes permisos suficientes para eliminar eventos especiales.");
+  }
+  const fb = await dbPromise;
+  const docRef = fb.firestore.doc(fb.firebaseDb, "special_events", id);
+  await fb.firestore.deleteDoc(docRef);
+}

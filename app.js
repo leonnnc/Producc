@@ -14,7 +14,10 @@ import {
   getServiceSignups,
   signupForService,
   cancelSignupForService,
-  getAllServiceSignups
+  getAllServiceSignups,
+  createSpecialEvent,
+  getSpecialEvents,
+  deleteSpecialEvent
 } from './data.js';
 
 import { isFirebaseConfigured } from './firebase-config.js';
@@ -93,6 +96,14 @@ const DOM = {
   btnCloseReserveModal: document.getElementById('btn-close-reserve-modal'),
   reserveModalTitle: document.getElementById('reserve-modal-title'),
   reserveModalBodyContent: document.getElementById('reserve-modal-body-content'),
+  specialEventsContainer: document.getElementById('special-events-container'),
+  btnCreateSpecialEventTrigger: document.getElementById('btn-create-special-event-trigger'),
+  specialEventModal: document.getElementById('special-event-modal'),
+  btnCloseSpecialEventModal: document.getElementById('btn-close-special-event-modal'),
+  specialEventForm: document.getElementById('special-event-form'),
+  seName: document.getElementById('se-name'),
+  seDate: document.getElementById('se-date'),
+  seTime: document.getElementById('se-time'),
   
   // Módulo: Programaciones
   uploadPanelContainer: document.getElementById('upload-panel-container'),
@@ -361,10 +372,12 @@ function setupEventListeners() {
   DOM.btnPrevMonth.addEventListener('click', () => {
     currentMonth.setMonth(currentMonth.getMonth() - 1);
     renderCalendar();
+    renderSpecialEvents();
   });
   DOM.btnNextMonth.addEventListener('click', () => {
     currentMonth.setMonth(currentMonth.getMonth() + 1);
     renderCalendar();
+    renderSpecialEvents();
   });
 
   // --- EVENTOS DE SUBIDA DE PROGRAMACIÓN ---
@@ -480,6 +493,33 @@ function setupEventListeners() {
 
   // Buscador de historial de programaciones
   DOM.searchHistory.addEventListener('input', renderProgramHistory);
+
+  // Modales adicionales (Eventos Especiales)
+  DOM.btnCreateSpecialEventTrigger.addEventListener('click', () => {
+    DOM.specialEventModal.classList.remove('hidden');
+  });
+  DOM.btnCloseSpecialEventModal.addEventListener('click', () => {
+    DOM.specialEventModal.classList.add('hidden');
+  });
+
+  // Crear Evento Especial
+  DOM.specialEventForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = DOM.seName.value.trim();
+    const date = DOM.seDate.value;
+    const time = DOM.seTime.value.trim();
+    
+    try {
+      await createSpecialEvent(name, date, time, currentUser);
+      DOM.specialEventForm.reset();
+      DOM.specialEventModal.classList.add('hidden');
+      renderCalendar(); // Refrescar el calendario
+      addAuditLog("info", `Nuevo evento especial creado: "${name}" para el ${date} a las ${time}`);
+      alert("Evento especial creado con éxito.");
+    } catch (err) {
+      alert("Error al crear evento especial: " + err.message);
+    }
+  });
 }
 
 // Muestra alertas de error de Login/Registro
@@ -537,17 +577,25 @@ function loginSuccess() {
 // Adapta la interfaz a los permisos del usuario activo
 function configureRolePermissions() {
   const isStaff = currentUser.role === 'admin' || currentUser.role === 'slider';
+  const isLeaderOrStaff = isStaff || currentUser.role === 'lider';
   
-  // Consola de Administración (Pestaña Secreta)
-  if (isStaff) {
+  // Consola de Administración y Anuncios
+  if (isLeaderOrStaff) {
     DOM.btnOpenAnnModal.classList.remove('hidden');
-    DOM.uploadPanelContainer.classList.remove('hidden');
+    DOM.btnCreateSpecialEventTrigger.classList.remove('hidden');
   } else {
     DOM.btnOpenAnnModal.classList.add('hidden');
+    DOM.btnCreateSpecialEventTrigger.classList.add('hidden');
+  }
+
+  // Panel de Subida de Programaciones (Solo Admin/SuperLider)
+  if (isStaff) {
+    DOM.uploadPanelContainer.classList.remove('hidden');
+  } else {
     DOM.uploadPanelContainer.classList.add('hidden');
   }
 
-  // Columnas y botones de acción en directorio (se ocultan/muestran en el render)
+  // Columnas y botones de acción en directorio (se ocultan/muestran en el render para Admin/SuperLider)
   const staffOnlyElements = document.querySelectorAll('.staff-only');
   staffOnlyElements.forEach(el => {
     if (isStaff) {
@@ -592,13 +640,16 @@ function navigateSection(sectionId) {
   let title = "Dashboard";
   if (sectionId === 'sec-agenda') title = "Calendario y Servicios";
   if (sectionId === 'sec-programacion') title = "Hojas de Programación";
-  if (sectionId === 'sec-team') title = "Directorio de Equipo";
+  if (sectionId === 'sec-team') title = "Usuarios";
   
   DOM.currentSectionTitle.textContent = title;
 
   // Renderizar la sección cargada
   if (sectionId === 'sec-dashboard') renderDashboardHome();
-  if (sectionId === 'sec-agenda') renderCalendar();
+  if (sectionId === 'sec-agenda') {
+    renderCalendar();
+    renderSpecialEvents();
+  }
   if (sectionId === 'sec-programacion') renderProgramHistory();
   if (sectionId === 'sec-team') renderTeamDirectory();
 }
@@ -608,6 +659,7 @@ function navigateSection(sectionId) {
 function renderApp() {
   renderDashboardHome();
   renderCalendar();
+  renderSpecialEvents();
   renderProgramHistory();
   renderTeamDirectory();
 }
@@ -880,14 +932,14 @@ async function renderDashboardTeam() {
   try {
     const rawList = await getUsers(currentUser);
     const list = rawList.filter(u => u.role !== 'admin');
-    DOM.dashboardTeamBadge.textContent = `${list.length} Miembro${list.length === 1 ? '' : 's'}`;
+    DOM.dashboardTeamBadge.textContent = `${list.length} Usuario${list.length === 1 ? '' : 's'}`;
 
     if (list.length === 0) {
-      DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">No hay miembros en el equipo.</p>';
+      DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">No hay usuarios registrados.</p>';
       return;
     }
 
-    // Ordenar miembros por área
+    // Ordenar usuarios por área
     list.sort((a, b) => a.area.localeCompare(b.area));
 
     DOM.dashboardTeamContainer.innerHTML = `
@@ -915,7 +967,7 @@ async function renderDashboardTeam() {
 
   } catch (err) {
     console.error("Error al cargar directorio del dashboard:", err);
-    DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">Error al cargar el directorio de miembros.</p>';
+    DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">Error al cargar el directorio de usuarios.</p>';
   }
 }
 
@@ -1252,6 +1304,153 @@ async function openReserveModal(dateStr, slot, formattedDate) {
   }
 }
 
+// Renderiza la lista de eventos especiales creados para el mes activo
+async function renderSpecialEvents() {
+  DOM.specialEventsContainer.innerHTML = '<div class="loading-spinner"></div>';
+  
+  try {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const yearMonthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+    
+    // Obtener eventos especiales de este mes
+    const events = await getSpecialEvents(yearMonthStr);
+    
+    if (events.length === 0) {
+      DOM.specialEventsContainer.innerHTML = `
+        <p class="placeholder-text" style="text-align:center; padding: 20px 0;">
+          <i class="fa-regular fa-star" style="font-size:24px; margin-bottom:8px; display:block; color:var(--text-muted);"></i>
+          No hay eventos especiales programados para este mes.
+        </p>
+      `;
+      return;
+    }
+
+    // Ordenar cronológicamente por fecha y hora
+    events.sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.time.localeCompare(b.time);
+    });
+
+    const isStaff = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider';
+
+    let html = `
+      <table class="agenda-matrix-table">
+        <thead>
+          <tr>
+            <th>Evento Especial</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Estado / Personal</th>
+            <th class="actions-col">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    for (const ev of events) {
+      // Obtener el personal anotado para este evento especial
+      const signups = await getServiceSignups(ev.date, ev.time);
+      const isUserSignedUp = signups.some(s => s.userAlias === currentUser.alias);
+      
+      const parsedDate = new Date(ev.date + 'T00:00:00');
+      const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      const formattedDateLabel = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} ${monthNames[parsedDate.getMonth()]}`;
+
+      // Determinar si ya pasó el evento
+      parsedDate.setHours(0,0,0,0);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const isPast = parsedDate < today;
+
+      let actionBtn = '';
+      if (isPast) {
+        actionBtn = `<span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Cerrado</span>`;
+      } else {
+        actionBtn = `
+          <button class="btn btn-outline btn-xs btn-reserve-special" data-date="${ev.date}" data-time="${ev.time}" data-name="${ev.name}" style="${isUserSignedUp ? 'border-color:var(--color-cyan); color:white;' : ''}">
+            <i class="fa-regular fa-calendar-check"></i> ${isUserSignedUp ? 'Ver / Anotado' : 'Ver / Anotarse'}
+          </button>
+        `;
+      }
+
+      // Botón para eliminar (solo coordinadores)
+      let deleteBtn = '';
+      if (isStaff) {
+        deleteBtn = `
+          <button class="btn btn-danger btn-xs btn-delete-special" data-id="${ev.id}" title="Eliminar Evento Especial" style="margin-left: 6px; padding: 4px 6px;">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        `;
+      }
+
+      html += `
+        <tr>
+          <td><strong style="color:white; font-size:12px;">${ev.name}</strong></td>
+          <td><span style="font-size:12px; color:var(--text-muted);">${formattedDateLabel}</span></td>
+          <td><span style="font-size:12px; color:var(--text-muted);">${ev.time}</span></td>
+          <td>
+            <span class="badge ${signups.length > 0 ? 'badge-success' : 'badge-role'}" style="font-size:10px;">
+              ${signups.length} Anotado${signups.length === 1 ? '' : 's'}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center;">
+              ${actionBtn}
+              ${deleteBtn}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    html += `
+        </tbody>
+      </table>
+    `;
+
+    DOM.specialEventsContainer.innerHTML = html;
+
+    // Asociar eventos click a los botones de inscripción
+    DOM.specialEventsContainer.querySelectorAll('.btn-reserve-special').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const date = btn.getAttribute('data-date');
+        const time = btn.getAttribute('data-time');
+        const name = btn.getAttribute('data-name');
+        
+        const parsedDate = new Date(date + 'T00:00:00');
+        const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+        const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} - Evento: ${name}`;
+        
+        openReserveModal(date, time, formattedDate);
+      });
+    });
+
+    // Asociar eventos click a los botones de eliminar
+    DOM.specialEventsContainer.querySelectorAll('.btn-delete-special').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        if (confirm("¿Estás seguro de que deseas eliminar este evento especial? Se perderán las reservas asociadas.")) {
+          try {
+            await deleteSpecialEvent(id, currentUser);
+            alert("Evento especial eliminado con éxito.");
+            renderCalendar();
+            renderSpecialEvents();
+            renderActiveAgenda();
+          } catch (err) {
+            alert("Error al eliminar evento especial: " + err.message);
+          }
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error("Error al renderizar eventos especiales:", err);
+    DOM.specialEventsContainer.innerHTML = '<p class="placeholder-text">Error al cargar eventos especiales.</p>';
+  }
+}
+
 // Redirecciona al panel de subida de archivos pre-rellenando el formulario
 function goToUploadModule(dateStr, timeSlot) {
   navigateSection('sec-programacion');
@@ -1489,12 +1688,12 @@ async function renderTeamDirectory() {
           if (confirm(`¿Estás seguro de que deseas eliminar y revocar el acceso a @${alias}?`)) {
             try {
               await deleteUser(alias, currentUser);
-              alert(`Miembro @${alias} eliminado del sistema.`);
-              addAuditLog("warning", `Eliminado el miembro @${alias} del sistema.`);
+              alert(`Usuario @${alias} eliminado del sistema.`);
+              addAuditLog("warning", `Eliminado el usuario @${alias} del sistema.`);
               renderTeamDirectory();
               renderDashboardHome();
             } catch (err) {
-              alert("Error al eliminar miembro: " + err.message);
+              alert("Error al eliminar usuario: " + err.message);
             }
           }
         });
