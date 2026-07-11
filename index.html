@@ -304,6 +304,18 @@
               </div>
             </div>
 
+            <!-- Bloque de Notificaciones de la Agenda (Solo Líderes/Co-Líderes) -->
+            <div id="agenda-notifications-card" class="dashboard-col glass-panel hidden">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-bell text-amber"></i> Notificaciones de la Agenda</h3>
+                <span class="badge badge-active" style="background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25);">Novedades</span>
+              </div>
+              <div class="card-body" id="agenda-notifications-container" style="max-height: 290px; overflow-y: auto; display: flex; flex-direction: column;">
+                <!-- Se inyecta dinámicamente -->
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+
             <!-- Bloque de Programación Destacada -->
             <div class="dashboard-col glass-panel featured-prog-card">
               <div class="card-header">

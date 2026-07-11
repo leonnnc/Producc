@@ -659,6 +659,16 @@ function configureRolePermissions() {
       navTeam.parentElement.classList.add('hidden');
     }
   }
+
+  // Ocultar bloque de notificaciones de agenda si es Siervo regular
+  const agendaNotificationsCard = document.getElementById('agenda-notifications-card');
+  if (agendaNotificationsCard) {
+    if (canSeeTeam) {
+      agendaNotificationsCard.classList.remove('hidden');
+    } else {
+      agendaNotificationsCard.classList.add('hidden');
+    }
+  }
 }
 
 // Traduce roles técnicos a legibles en español
@@ -757,6 +767,7 @@ async function renderDashboardHome() {
   renderActiveAgenda();
   renderDashboardTeam();
   renderAnnouncements();
+  renderAgendaNotifications();
 }
 
 // Calcula cuántos servicios fijos ocurren en el mes en curso (miércoles y domingos)
@@ -1039,6 +1050,110 @@ async function renderDashboardTeam() {
   } catch (err) {
     console.error("Error al cargar directorio del dashboard:", err);
     DOM.dashboardTeamContainer.innerHTML = '<p class="placeholder-text">Error al cargar el directorio de usuarios.</p>';
+  }
+}
+
+// Renderiza lista de notificaciones de la agenda para líderes
+async function renderAgendaNotifications() {
+  const container = document.getElementById('agenda-notifications-container');
+  if (!container) return;
+  
+  container.innerHTML = '<div class="loading-spinner"></div>';
+  
+  try {
+    const allSignups = await getAllServiceSignups();
+    
+    const now = new Date();
+    const parseDateTime = (dateStr, timeStr) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      let [timeVal, modifier] = timeStr.split(' ');
+      let [hours, minutes] = timeVal.split(':').map(Number);
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      return new Date(year, month - 1, day, hours, minutes);
+    };
+
+    let activeSignups = allSignups.filter(s => {
+      try {
+        const serviceDate = parseDateTime(s.date, s.time);
+        const serviceEndDate = new Date(serviceDate.getTime() + 2 * 60 * 60 * 1000);
+        return serviceEndDate >= now;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    if (currentUser.role !== 'admin' && currentUser.role !== 'slider') {
+      const isSwitchOrCam = currentUser.area === "Switchers" || currentUser.area === "Cámaras";
+      activeSignups = activeSignups.filter(s => {
+        if (isSwitchOrCam) {
+          return s.userArea === "Switchers" || s.userArea === "Cámaras";
+        }
+        return s.userArea === currentUser.area;
+      });
+    }
+
+    activeSignups.sort((a, b) => {
+      const timeA = a.createdAt || '';
+      const timeB = b.createdAt || '';
+      return timeB.localeCompare(timeA);
+    });
+
+    if (activeSignups.length === 0) {
+      container.innerHTML = '<p class="placeholder-text" style="text-align:center; padding: 20px 0;">No hay notificaciones de inscripciones recientes.</p>';
+      return;
+    }
+
+    const formatKey = (dateStr) => {
+      const parsedDate = new Date(dateStr + 'T00:00:00');
+      const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      return `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${monthNames[parsedDate.getMonth()]}`;
+    };
+
+    container.innerHTML = activeSignups.map(s => {
+      const sameAreaAndSlot = allSignups.filter(x => x.date === s.date && x.time === s.time && x.userArea === s.userArea);
+      const count = sameAreaAndSlot.length;
+      
+      let capacityText = '';
+      if (s.userArea === 'Switchers') {
+        capacityText = `(Total: ${count}/1 Switcher)`;
+      } else if (s.userArea === 'Cámaras') {
+        capacityText = `(Total: ${count}/3 Cámaras)`;
+      } else {
+        capacityText = `(Total: ${count} asignado${count === 1 ? '' : 's'})`;
+      }
+
+      const sortedSameArea = sameAreaAndSlot.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+      const index = sortedSameArea.findIndex(x => x.userAlias === s.userAlias);
+      let roleLabel = s.userArea;
+      let badgeStyle = 'background:rgba(0,229,255,0.06); color:var(--color-cyan); border:1px solid rgba(0,229,255,0.15);';
+      
+      if (s.userArea === 'Switchers' && index >= 1) {
+        roleLabel = 'Switcher (Apoyo)';
+        badgeStyle = 'background:rgba(245,158,11,0.08); color:#f59e0b; border:1px solid rgba(245,158,11,0.18);';
+      } else if (s.userArea === 'Cámaras' && index >= 3) {
+        roleLabel = 'Cámara (Apoyo)';
+        badgeStyle = 'background:rgba(245,158,11,0.08); color:#f59e0b; border:1px solid rgba(245,158,11,0.18);';
+      }
+
+      return `
+        <div class="notification-item" style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <strong style="color: white; font-size: 12px;">${s.userName} <span style="font-weight:400; color:var(--text-muted);">(@${s.userAlias})</span></strong>
+            <span class="badge" style="font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 600; ${badgeStyle}">${roleLabel}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+            <span><i class="fa-regular fa-clock"></i> ${formatKey(s.date)} a las ${s.time}</span>
+            <span style="color: var(--color-cyan); font-weight: 500;">${capacityText}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (err) {
+    console.error("Error al renderizar notificaciones:", err);
+    container.innerHTML = '<p class="placeholder-text" style="text-align:center; padding: 20px 0;">Error al cargar notificaciones.</p>';
   }
 }
 
@@ -1374,14 +1489,9 @@ async function openReserveModal(dateStr, slot, formattedDate) {
         </div>
       `;
     } else {
-      const isLeader = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.role === 'co_lider';
-      const instructionText = isLeader 
-        ? "Administra el personal del servicio activo abajo:"
-        : "Inscríbete en este servicio seleccionando tu casilla abajo:";
-
       actionPanelHtml = `
         <div style="background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid var(--border-glass); text-align:center;">
-          <span style="font-size:12px; color:white; font-weight:500;"><i class="fa-solid fa-user-clock"></i> ${instructionText}</span>
+          <span style="font-size:12px; color:white; font-weight:500;"><i class="fa-solid fa-user-clock"></i> Administra el personal del servicio activo abajo:</span>
         </div>
       `;
     }
@@ -1418,6 +1528,7 @@ async function openReserveModal(dateStr, slot, formattedDate) {
             renderCalendar();
             // Actualizar la agenda activa del dashboard
             renderActiveAgenda();
+            renderAgendaNotifications();
           } catch (err) {
             alert("Error al actualizar la asignación: " + err.message);
           }
