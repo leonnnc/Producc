@@ -120,9 +120,6 @@ const DOM = {
   searchHistory: document.getElementById('search-history'),
   
   // Módulo: Gestión de Equipo
-  searchTeamInput: document.getElementById('search-team-input'),
-  filterTeamArea: document.getElementById('filter-team-area'),
-  filterTeamRole: document.getElementById('filter-team-role'),
   teamTableBody: document.getElementById('team-table-body'),
 
   
@@ -485,11 +482,6 @@ function setupEventListeners() {
       alert("Error al publicar anuncio: " + err.message);
     }
   });
-
-  // Filtros del directorio de equipo
-  DOM.searchTeamInput.addEventListener('input', renderTeamDirectory);
-  DOM.filterTeamArea.addEventListener('change', renderTeamDirectory);
-  DOM.filterTeamRole.addEventListener('change', renderTeamDirectory);
 
   // Buscador de historial de programaciones
   DOM.searchHistory.addEventListener('input', renderProgramHistory);
@@ -1586,26 +1578,8 @@ async function renderTeamDirectory() {
     // Filtrar al Administrador Supremo del directorio de miembros del servicio
     let filtered = list.filter(u => u.role !== 'admin');
 
-    // Filtro por término de búsqueda (Alias o Nombre)
-    const term = DOM.searchTeamInput.value.trim().toLowerCase();
-    if (term) {
-      filtered = filtered.filter(u => u.name.toLowerCase().includes(term) || u.alias.toLowerCase().includes(term));
-    }
-
-    // Filtro por Área
-    const area = DOM.filterTeamArea.value;
-    if (area !== 'all') {
-      filtered = filtered.filter(u => u.area === area);
-    }
-
-    // Filtro por Rol
-    const role = DOM.filterTeamRole.value;
-    if (role !== 'all') {
-      filtered = filtered.filter(u => u.role === role);
-    }
-
     if (filtered.length === 0) {
-      DOM.teamTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-text" style="text-align:center;">No se encontraron miembros del equipo.</td></tr>';
+      DOM.teamTableBody.innerHTML = '<tr><td colspan="6" class="placeholder-text" style="text-align:center;">No se encontraron usuarios.</td></tr>';
       return;
     }
 
