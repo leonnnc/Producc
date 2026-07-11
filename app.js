@@ -1248,44 +1248,55 @@ async function openReserveModal(dateStr, slot, formattedDate) {
 
     let signupsHtml = `
       <div class="agenda-flat-list" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
-        ${Object.keys(groups).map(area => `
-          <div class="agenda-flat-service" style="margin-bottom: 8px;">
-            <div class="agenda-flat-service-header" style="font-size: 10px; border-bottom-color: rgba(255, 255, 255, 0.05); padding-bottom: 4px; margin-bottom: 8px;">
-              <i class="fa-solid fa-people-group"></i> ${area.toUpperCase()}
-            </div>
-            <div class="agenda-flat-members">
-              ${groups[area].map(s => {
-                const isAssigned = signups.some(x => x.userAlias === s.alias);
-                const canToggle = !isPast && (currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias);
-                
-                let actionHtml = '';
-                if (canToggle) {
-                  actionHtml = `
-                    <button class="btn-modal-toggle-assignment" data-alias="${s.alias}" data-assigned="${isAssigned}" style="background:none; border:none; padding:2px 6px; cursor:pointer; color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; display:flex; align-items:center;">
-                      <i class="${isAssigned ? 'fa-solid fa-square-check' : 'fa-regular fa-square'}"></i>
-                    </button>
-                  `;
-                } else {
-                  actionHtml = `
-                    <span style="color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; padding:2px 6px; display:flex; align-items:center;">
-                      <i class="${isAssigned ? 'fa-solid fa-check' : 'fa-solid fa-minus'}"></i>
-                    </span>
-                  `;
-                }
+        ${Object.keys(groups).map(area => {
+          const areaSignups = signups.filter(x => x.userArea === area);
+          let capacityLabel = '';
+          if (area === 'Switchers') {
+            capacityLabel = `(${areaSignups.length}/1)`;
+          } else if (area === 'Cámaras') {
+            capacityLabel = `(${areaSignups.length}/3)`;
+          }
+          
+          return `
+            <div class="agenda-flat-service" style="margin-bottom: 8px;">
+              <div class="agenda-flat-service-header" style="font-size: 10px; border-bottom-color: rgba(255, 255, 255, 0.05); padding-bottom: 4px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
+                <span><i class="fa-solid fa-people-group"></i> ${area.toUpperCase()}</span>
+                <span style="font-size: 9px; opacity: 0.8; color: var(--color-cyan); font-weight:600;">${capacityLabel}</span>
+              </div>
+              <div class="agenda-flat-members">
+                ${groups[area].map(s => {
+                  const isAssigned = signups.some(x => x.userAlias === s.alias);
+                  const canToggle = !isPast && (currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias);
+                  
+                  let actionHtml = '';
+                  if (canToggle) {
+                    actionHtml = `
+                      <button class="btn-modal-toggle-assignment" data-alias="${s.alias}" data-assigned="${isAssigned}" style="background:none; border:none; padding:2px 6px; cursor:pointer; color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; display:flex; align-items:center;">
+                        <i class="${isAssigned ? 'fa-solid fa-square-check' : 'fa-regular fa-square'}"></i>
+                      </button>
+                    `;
+                  } else {
+                    actionHtml = `
+                      <span style="color:${isAssigned ? 'var(--color-cyan)' : 'var(--text-muted)'}; font-size:12px; padding:2px 6px; display:flex; align-items:center;">
+                        <i class="${isAssigned ? 'fa-solid fa-check' : 'fa-solid fa-minus'}"></i>
+                      </span>
+                    `;
+                  }
 
-                return `
-                  <div class="agenda-flat-member">
-                    <div class="agenda-flat-member-info">
-                      <i class="fa-solid fa-user-check text-cyan" style="font-size:11px;"></i>
-                      <span style="${isAssigned ? 'font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
+                  return `
+                    <div class="agenda-flat-member">
+                      <div class="agenda-flat-member-info">
+                        <i class="fa-solid fa-user-check text-cyan" style="font-size:11px;"></i>
+                        <span style="${isAssigned ? 'font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
+                      </div>
+                      ${actionHtml}
                     </div>
-                    ${actionHtml}
-                  </div>
-                `;
-              }).join('')}
+                  `;
+                }).join('')}
+              </div>
             </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     `;
 
@@ -1328,6 +1339,21 @@ async function openReserveModal(dateStr, slot, formattedDate) {
             if (assigned) {
               await cancelSignupForService(dateStr, slot, alias);
             } else {
+              // Validar límites de capacidad (1 Switcher y 3 Cámaras por servicio)
+              if (targetServant.area === 'Switchers') {
+                const switchersCount = signups.filter(x => x.userArea === 'Switchers').length;
+                if (switchersCount >= 1) {
+                  alert("Advertencia: Ya se encuentra asignado un Switcher para este servicio. Solo se permite 1 Switcher por turno.");
+                  return;
+                }
+              } else if (targetServant.area === 'Cámaras') {
+                const camerasCount = signups.filter(x => x.userArea === 'Cámaras').length;
+                if (camerasCount >= 3) {
+                  alert("Advertencia: Ya se encuentran asignadas las 3 Cámaras requeridas para este servicio.");
+                  return;
+                }
+              }
+
               await signupForService(dateStr, slot, targetServant);
             }
             // Volver a cargar el modal
