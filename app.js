@@ -54,7 +54,6 @@ const DOM = {
   authAlert: document.getElementById('auth-alert'),
   authSubtitle: document.getElementById('auth-flow-subtitle'),
   loginForm: document.getElementById('login-form'),
-  btnGoogleLogin: document.getElementById('btn-google-login'),
   registerForm: document.getElementById('register-form'),
   btnGotoRegister: document.getElementById('btn-goto-register'),
   btnGotoLogin: document.getElementById('btn-goto-login'),
@@ -271,26 +270,6 @@ function setupEventListeners() {
       loginSuccess();
     } catch (err) {
       showAuthError(err.message);
-    }
-  });
-
-  // Inicio de Sesión con Google
-  DOM.btnGoogleLogin.addEventListener('click', async () => {
-    DOM.authAlert.classList.add('hidden');
-    try {
-      const user = await loginUserWithGoogle();
-      currentUser = user;
-      sessionStorage.setItem('erp_active_user', JSON.stringify(currentUser));
-      loginSuccess();
-    } catch (err) {
-      // Si el error contiene instrucciones sobre el registro local de prueba, mostramos una alerta verde de éxito/información
-      if (err.message.includes("registrada en el sistema de forma local") || err.message.includes("ha sido registrada en el sistema")) {
-        DOM.authAlert.textContent = err.message;
-        DOM.authAlert.className = "alert-box success";
-        DOM.authAlert.classList.remove('hidden');
-      } else {
-        showAuthError(err.message);
-      }
     }
   });
 
