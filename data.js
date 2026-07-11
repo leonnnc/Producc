@@ -348,7 +348,35 @@ export async function getAnnouncements() {
   const fb = await dbPromise;
   const annCol = fb.firestore.collection(fb.firebaseDb, "announcements");
   const snap = await fb.firestore.getDocs(annCol);
-  const list = snap.docs.map(doc => doc.data());
+  const list = [];
+  const now = new Date();
+
+  for (const docSnap of snap.docs) {
+    const data = docSnap.data();
+    let isExpired = false;
+
+    if (data.eventDate) {
+      const timeStr = data.eventTime || "00:00";
+      const [year, month, day] = data.eventDate.split('-').map(Number);
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const eventDateTime = new Date(year, month - 1, day, hours, minutes);
+      
+      // Expira 2 horas después de la hora del evento
+      const expirationTime = new Date(eventDateTime.getTime() + 2 * 60 * 60 * 1000);
+      
+      if (now > expirationTime) {
+        isExpired = true;
+        fb.firestore.deleteDoc(fb.firestore.doc(fb.firebaseDb, "announcements", docSnap.id)).catch(err => {
+          console.error("Error al eliminar anuncio expirado:", err);
+        });
+      }
+    }
+
+    if (!isExpired) {
+      list.push(data);
+    }
+  }
+
   list.sort((a, b) => new Date(b.date) - new Date(a.date));
   return list;
 }
@@ -359,7 +387,7 @@ export async function getAnnouncements() {
  * @param {string} content Contenido.
  * @param {Object} currentUser Autor.
  */
-export async function createAnnouncement(title, content, currentUser) {
+export async function createAnnouncement(title, content, currentUser, eventDate = "", eventTime = "") {
   if (currentUser.role !== "admin" && currentUser.role !== "slider" && currentUser.role !== "lider") {
     throw new Error("No tienes permisos suficientes para publicar anuncios.");
   }
@@ -370,7 +398,9 @@ export async function createAnnouncement(title, content, currentUser) {
     title,
     content,
     date: new Date().toISOString().split('T')[0],
-    author: `${currentUser.name} (${currentUser.role === 'slider' ? 'Super Líder' : currentUser.role === 'lider' ? 'Líder' : 'Admin'})`
+    author: `${currentUser.name} (${currentUser.role === 'slider' ? 'Super Líder' : currentUser.role === 'lider' ? 'Líder' : 'Admin'})`,
+    eventDate: eventDate || "",
+    eventTime: eventTime || ""
   };
 
   const fb = await dbPromise;

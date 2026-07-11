@@ -494,9 +494,11 @@ function setupEventListeners() {
     e.preventDefault();
     const title = document.getElementById('ann-title').value.trim();
     const content = document.getElementById('ann-content').value.trim();
+    const eventDate = document.getElementById('ann-event-date').value;
+    const eventTime = document.getElementById('ann-event-time').value;
     
     try {
-      await createAnnouncement(title, content, currentUser);
+      await createAnnouncement(title, content, currentUser, eventDate, eventTime);
       DOM.announcementForm.reset();
       DOM.announcementModal.classList.add('hidden');
       renderAnnouncements();
@@ -1033,16 +1035,25 @@ async function renderAnnouncements() {
       return;
     }
 
-    DOM.announcementsContainer.innerHTML = list.map(ann => `
-      <div class="announcement-item">
-        <div class="ann-item-header">
-          <span><i class="fa-solid fa-user-pen"></i> ${ann.author}</span>
-          <span><i class="fa-regular fa-calendar"></i> ${ann.date}</span>
+    DOM.announcementsContainer.innerHTML = list.map(ann => {
+      const expirationInfo = ann.eventDate 
+        ? `<div style="font-size: 10px; color: var(--color-cyan); margin-top: 5px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+             <i class="fa-solid fa-clock-rotate-left"></i> Vence: ${ann.eventDate} a las ${ann.eventTime} (Auto-elimina +2h)
+           </div>`
+        : '';
+
+      return `
+        <div class="announcement-item">
+          <div class="ann-item-header">
+            <span><i class="fa-solid fa-user-pen"></i> ${ann.author}</span>
+            <span><i class="fa-regular fa-calendar"></i> ${ann.date}</span>
+          </div>
+          <h4 class="ann-item-title">${ann.title}</h4>
+          <p class="ann-item-content" style="white-space: pre-wrap;">${ann.content}</p>
+          ${expirationInfo}
         </div>
-        <h4 class="ann-item-title">${ann.title}</h4>
-        <p class="ann-item-content">${ann.content}</p>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   } catch (err) {
     DOM.announcementsContainer.innerHTML = '<p class="placeholder-text">Error al cargar anuncios.</p>';
   }
