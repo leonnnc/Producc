@@ -1777,7 +1777,7 @@ async function renderYouTubeLive() {
       const formattedDate = `${pubDate.getDate()}/${pubDate.getMonth() + 1}/${pubDate.getFullYear()}`;
       
       return `
-        <div class="program-card glass-panel" style="padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02);">
+        <div class="program-card glass-panel btn-play-recorded" data-id="${videoId}" style="padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); cursor: pointer;">
           <div>
             <div style="aspect-ratio: 16/9; background: #000; border-radius: 4px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05);">
               <img src="${item.thumbnail}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;">
@@ -1786,17 +1786,14 @@ async function renderYouTubeLive() {
             <h5 style="color: white; font-size: 12px; font-weight: 500; margin: 8px 0 4px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 32px; line-height: 1.3;" title="${item.title}">${item.title}</h5>
             <span style="font-size: 10px; color: var(--text-muted);"><i class="fa-regular fa-calendar"></i> ${formattedDate}</span>
           </div>
-          <button class="btn btn-outline btn-xs btn-play-recorded" data-id="${videoId}" style="width: 100%; margin-top: 10px;">
-            <i class="fa-solid fa-play"></i> Reproducir en Pantalla
-          </button>
         </div>
       `;
     }).join('');
     
-    // Asignar click a los botones de reproducir
-    recentGrid.querySelectorAll('.btn-play-recorded').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
+    // Asignar click a las tarjetas de reproducir
+    recentGrid.querySelectorAll('.btn-play-recorded').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-id');
         iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
         iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
