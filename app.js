@@ -648,6 +648,17 @@ function configureRolePermissions() {
       el.classList.add('hidden');
     }
   });
+
+  // Ocultar sección de Usuarios si es Siervo regular
+  const navTeam = document.getElementById('nav-team');
+  const canSeeTeam = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.role === 'co_lider';
+  if (navTeam) {
+    if (canSeeTeam) {
+      navTeam.parentElement.classList.remove('hidden');
+    } else {
+      navTeam.parentElement.classList.add('hidden');
+    }
+  }
 }
 
 // Traduce roles técnicos a legibles en español
@@ -664,6 +675,15 @@ function getRoleLabel(role) {
 
 // Router SPA básico
 function navigateSection(sectionId) {
+  // Evitar navegación a Usuarios para siervos normales
+  if (sectionId === 'sec-team') {
+    const canSeeTeam = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.role === 'co_lider';
+    if (!canSeeTeam) {
+      navigateSection('sec-dashboard');
+      return;
+    }
+  }
+
   DOM.sections.forEach(sec => {
     if (sec.id === sectionId) {
       sec.classList.remove('hidden');
