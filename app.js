@@ -31,7 +31,7 @@ let selectedFileType = null;   // Tipo del archivo cargado (image o pdf)
 let selectedFileName = null;   // Nombre del archivo cargado
 
 // YouTube Integration
-const YOUTUBE_CHANNEL_ID = 'UC-lHJZR3Gqxm24_Vd_AJ5Yw'; // PewDiePie or replacement channel ID
+const YOUTUBE_CHANNEL_ID = 'UC0XjfZF7rFUA9eS0Ok6pJvg'; // Catedral de Fe Channel ID
 
 // --- ELEMENTOS DEL DOM ---
 const DOM = {
