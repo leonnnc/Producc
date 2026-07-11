@@ -1351,13 +1351,46 @@ async function renderCalendar() {
   DOM.wednesdayMatrixTable.innerHTML = wednesdayHtml;
 
   // --- ASOCIAR EVENTOS DE CLICK A LAS CELDAS DE LAS TABLAS ---
-  const handleCellClick = (e) => {
-    // Si hicieron clic en el botón o en la celda, abrimos el modal
+  const handleCellClick = async (e) => {
     const cell = e.currentTarget;
     const dateStr = cell.getAttribute('data-date');
     const slot = cell.getAttribute('data-slot');
-    const formatted = cell.getAttribute('data-formatted');
-    openReserveModal(dateStr, slot, formatted);
+    
+    // Verificar si es fecha pasada
+    const parsedDate = new Date(dateStr + 'T00:00:00');
+    parsedDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (parsedDate < today) {
+      alert("Este servicio ya finalizó. No se pueden realizar cambios.");
+      return;
+    }
+    
+    try {
+      // 1. Obtener las inscripciones actuales para este turno
+      const signups = await getServiceSignups(dateStr, slot);
+      
+      // 2. Comprobar si el usuario actual ya está inscrito
+      const isAssigned = signups.some(x => x.userAlias === currentUser.alias);
+      
+      if (isAssigned) {
+        // Retirarse del servicio
+        await cancelSignupForService(dateStr, slot, currentUser.alias);
+        alert(`Te has retirado del servicio del ${slot}.`);
+      } else {
+        // Inscribirse al servicio
+        await signupForService(dateStr, slot, currentUser);
+        alert(`Te has inscrito exitosamente para el servicio del ${slot}.`);
+      }
+      
+      // 3. Actualizar grilla principal, agenda y notificaciones del dashboard
+      renderCalendar();
+      renderActiveAgenda();
+      renderAgendaNotifications();
+      
+    } catch (err) {
+      alert("Error al actualizar la asignación: " + err.message);
+    }
   };
 
   DOM.sundayMatrixTable.querySelectorAll('.reserve-matrix-cell').forEach(cell => {
