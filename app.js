@@ -552,6 +552,18 @@ function setupEventListeners() {
       }
     });
   }
+
+  // Transmisión en Vivo: Botón de probar Facebook Video
+  const btnPlayFacebookTest = document.getElementById('btn-play-facebook-test');
+  if (btnPlayFacebookTest) {
+    btnPlayFacebookTest.addEventListener('click', () => {
+      const iframe = document.getElementById('main-live-iframe');
+      if (iframe) {
+        iframe.src = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent('https://www.facebook.com/share/v/1UpBbpJeqW/')}&show_text=0&width=560`;
+        iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
 }
 
 // Muestra alertas de error de Login/Registro
