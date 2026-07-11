@@ -186,7 +186,7 @@
         <ul>
           <li>
             <a href="#" class="nav-item active" data-target="sec-dashboard" id="nav-dashboard">
-              <i class="fa-solid fa-chart-line"></i> <span>Dashboard Home</span>
+              <i class="fa-solid fa-border-all"></i> <span>Dashboard</span>
             </a>
           </li>
           <li>
@@ -195,13 +195,33 @@
             </a>
           </li>
           <li>
+            <a href="#" class="nav-item" data-target="sec-special-events" id="nav-special-events">
+              <i class="fa-regular fa-file-lines"></i> <span>Eventos Especiales</span>
+            </a>
+          </li>
+          <li>
             <a href="#" class="nav-item" data-target="sec-agenda" id="nav-agenda">
-              <i class="fa-regular fa-calendar-days"></i> <span>Agenda y Servicios</span>
+              <i class="fa-regular fa-calendar-check"></i> <span>Agenda de Servicio</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-target="sec-metrics" id="nav-metrics">
+              <i class="fa-solid fa-chart-simple"></i> <span>Métricas y Asistencia</span>
             </a>
           </li>
           <li>
             <a href="#" class="nav-item" data-target="sec-programacion" id="nav-programacion">
-              <i class="fa-solid fa-file-pdf"></i> <span>Programaciones</span>
+              <i class="fa-regular fa-file-lines"></i> <span>Programación</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-target="sec-live" id="nav-live">
+              <i class="fa-solid fa-film"></i> <span>Transmisión en Vivo</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" data-target="sec-learn" id="nav-learn">
+              <i class="fa-regular fa-circle-play"></i> <span>Aprende</span>
             </a>
           </li>
 
@@ -368,19 +388,6 @@
               </div>
             </div>
 
-            <!-- Tabla de Eventos Especiales -->
-            <div class="glass-panel agenda-table-card" style="margin-top: 15px;">
-              <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <h3><i class="fa-solid fa-star text-cyan"></i> Eventos Especiales</h3>
-                <button id="btn-create-special-event-trigger" class="btn btn-primary btn-xs staff-only hidden">
-                  <i class="fa-solid fa-plus"></i> Crear Evento Especial
-                </button>
-              </div>
-              <div class="card-body" id="special-events-container">
-                <!-- Generado por JS -->
-              </div>
-            </div>
-
           </div>
         </section>
 
@@ -479,7 +486,130 @@
           </div>
         </section>
 
+        <!-- ==================== SECCIÓN: EVENTOS ESPECIALES ==================== -->
+        <section id="sec-special-events" class="content-section hidden">
+          <!-- Controles de Mes superior -->
+          <div class="glass-panel agenda-controls-wrapper" style="margin-bottom: 15px;">
+            <div class="agenda-header-info">
+              <h3>Eventos Especiales</h3>
+              <p class="placeholder-text" style="padding:0; margin-top:2px;">Inscríbete en reuniones y eventos extraordinarios</p>
+            </div>
+            <div class="calendar-header-controls">
+              <button id="btn-prev-month-special" class="btn btn-outline btn-xs"><i class="fa-solid fa-chevron-left"></i></button>
+              <h3 id="special-month-year">Julio 2026</h3>
+              <button id="btn-next-month-special" class="btn btn-outline btn-xs"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
 
+          <div class="glass-panel agenda-table-card">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <h3><i class="fa-solid fa-star text-cyan"></i> Listado de Eventos</h3>
+              <button id="btn-create-special-event-trigger" class="btn btn-primary btn-xs staff-only hidden">
+                <i class="fa-solid fa-plus"></i> Crear Evento Especial
+              </button>
+            </div>
+            <div class="card-body" id="special-events-container">
+              <!-- Generado por JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SECCIÓN: MÉTRICAS Y ASISTENCIA ==================== -->
+        <section id="sec-metrics" class="content-section hidden">
+          <div class="glass-panel" style="padding: 20px;">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-simple text-purple"></i> Métricas y Asistencia</h3>
+              <p class="placeholder-text" style="padding:0; margin-top:2px;">Resumen estadístico de participación y puntualidad</p>
+            </div>
+            <div class="card-body" style="margin-top: 15px;">
+              <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                <div class="stat-card glass-panel card-blue" style="padding: 15px;">
+                  <span class="stat-label">Puntualidad General</span>
+                  <span class="stat-value">94.8%</span>
+                </div>
+                <div class="stat-card glass-panel card-purple" style="padding: 15px;">
+                  <span class="stat-label">Asistencia Promedio</span>
+                  <span class="stat-value">91.2%</span>
+                </div>
+                <div class="stat-card glass-panel card-red" style="padding: 15px;">
+                  <span class="stat-label">Cobertura de Turnos</span>
+                  <span class="stat-value">100%</span>
+                </div>
+              </div>
+              <div style="margin-top: 25px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; text-align: center;">
+                <i class="fa-solid fa-chart-line" style="font-size: 32px; color: var(--color-cyan); margin-bottom: 10px; display: block;"></i>
+                <h4 style="color: white; font-weight: 500; font-size: 14px;">Gráfico de Tendencia Mensual</h4>
+                <p class="placeholder-text" style="font-size: 12px; margin-top: 4px;">El módulo de gráficos analíticos detallados se está sincronizando con el servidor de reportes.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SECCIÓN: TRANSMISIÓN EN VIVO ==================== -->
+        <section id="sec-live" class="content-section hidden">
+          <div class="glass-panel" style="padding: 20px;">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-film text-red"></i> Monitoreo de Transmisión en Vivo</h3>
+              <p class="placeholder-text" style="padding:0; margin-top:2px;">Señal de retorno y estado de la transmisión en tiempo real</p>
+            </div>
+            <div class="card-body" style="margin-top: 15px;">
+              <div style="aspect-ratio: 16/9; background: #000; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 15px; left: 15px; background: rgba(239, 68, 68, 0.85); color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 6px; height: 6px; background: white; border-radius: 50%; display: inline-block; animation: pulse 1s infinite;"></span> EN VIVO
+                </div>
+                <i class="fa-solid fa-tv" style="font-size: 48px; color: rgba(255,255,255,0.15); margin-bottom: 10px;"></i>
+                <span style="color: var(--text-muted); font-size: 12px;">Conectando con la señal de salida del Switcher Blackmagic...</span>
+              </div>
+              <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 15px;">
+                <div style="background: rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; font-size: 12px; color: var(--text-muted);">
+                  Bitrate: <strong style="color: white; float: right;">6,500 kbps</strong>
+                </div>
+                <div style="background: rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; font-size: 12px; color: var(--text-muted);">
+                  FPS: <strong style="color: white; float: right;">60 fps</strong>
+                </div>
+                <div style="background: rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; font-size: 12px; color: var(--text-muted);">
+                  Resolución: <strong style="color: white; float: right;">1920 x 1080 (1080p)</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SECCIÓN: APRENDE ==================== -->
+        <section id="sec-learn" class="content-section hidden">
+          <div class="glass-panel" style="padding: 20px;">
+            <div class="card-header">
+              <h3><i class="fa-regular fa-circle-play text-amber"></i> Portal de Capacitación (Aprende)</h3>
+              <p class="placeholder-text" style="padding:0; margin-top:2px;">Recursos, tutoriales y guías operativas de producción</p>
+            </div>
+            <div class="card-body" style="margin-top: 15px;">
+              <div class="program-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                <!-- Manual Cámaras -->
+                <div class="program-card glass-panel" style="padding: 12px;">
+                  <div style="aspect-ratio: 16/9; background: rgba(255,255,255,0.02); border-radius: 6px; border:1px solid rgba(255,255,255,0.06); display: flex; justify-content: center; align-items: center;">
+                    <i class="fa-solid fa-video" style="font-size: 32px; color: var(--color-cyan);"></i>
+                  </div>
+                  <div style="margin-top: 10px;">
+                    <h4 style="font-size: 13px; font-weight: 600; color: white; margin-bottom: 2px;">Guía de Operación de Cámara</h4>
+                    <p class="placeholder-text" style="font-size: 11px; line-height: 1.4;">Aprende el encuadre, balance de blancos y control de foco para el servicio.</p>
+                    <button class="btn btn-outline btn-xs" style="width: 100%; margin-top: 10px;"><i class="fa-solid fa-book-open"></i> Leer Manual</button>
+                  </div>
+                </div>
+                <!-- Manual Switchers -->
+                <div class="program-card glass-panel" style="padding: 12px;">
+                  <div style="aspect-ratio: 16/9; background: rgba(255,255,255,0.02); border-radius: 6px; border:1px solid rgba(255,255,255,0.06); display: flex; justify-content: center; align-items: center;">
+                    <i class="fa-solid fa-computer" style="font-size: 32px; color: var(--color-purple);"></i>
+                  </div>
+                  <div style="margin-top: 10px;">
+                    <h4 style="font-size: 13px; font-weight: 600; color: white; margin-bottom: 2px;">Tutorial de Switcher Blackmagic</h4>
+                    <p class="placeholder-text" style="font-size: 11px; line-height: 1.4;">Flujo de transiciones, macros y transiciones PIP.</p>
+                    <button class="btn btn-outline btn-xs" style="width: 100%; margin-top: 10px;"><i class="fa-solid fa-circle-play"></i> Ver Video</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
       </main>
     </div>

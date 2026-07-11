@@ -377,6 +377,22 @@ function setupEventListeners() {
     renderSpecialEvents();
   });
 
+  // --- EVENTOS DEL CALENDARIO DE EVENTOS ESPECIALES ---
+  const btnPrevMonthSpecial = document.getElementById('btn-prev-month-special');
+  const btnNextMonthSpecial = document.getElementById('btn-next-month-special');
+  if (btnPrevMonthSpecial) {
+    btnPrevMonthSpecial.addEventListener('click', () => {
+      currentMonth.setMonth(currentMonth.getMonth() - 1);
+      renderSpecialEvents();
+    });
+  }
+  if (btnNextMonthSpecial) {
+    btnNextMonthSpecial.addEventListener('click', () => {
+      currentMonth.setMonth(currentMonth.getMonth() + 1);
+      renderSpecialEvents();
+    });
+  }
+
   // --- EVENTOS DE SUBIDA DE PROGRAMACIÓN ---
   // Evento Drag & Drop
   DOM.fileDropZone.addEventListener('dragover', (e) => {
@@ -630,20 +646,22 @@ function navigateSection(sectionId) {
 
   // Cambiar título en el header
   let title = "Dashboard";
-  if (sectionId === 'sec-agenda') title = "Calendario y Servicios";
-  if (sectionId === 'sec-programacion') title = "Hojas de Programación";
   if (sectionId === 'sec-team') title = "Usuarios";
+  if (sectionId === 'sec-special-events') title = "Eventos Especiales";
+  if (sectionId === 'sec-agenda') title = "Agenda de Servicio";
+  if (sectionId === 'sec-metrics') title = "Métricas y Asistencia";
+  if (sectionId === 'sec-programacion') title = "Programación";
+  if (sectionId === 'sec-live') title = "Transmisión en Vivo";
+  if (sectionId === 'sec-learn') title = "Aprende";
   
   DOM.currentSectionTitle.textContent = title;
 
   // Renderizar la sección cargada
   if (sectionId === 'sec-dashboard') renderDashboardHome();
-  if (sectionId === 'sec-agenda') {
-    renderCalendar();
-    renderSpecialEvents();
-  }
-  if (sectionId === 'sec-programacion') renderProgramHistory();
   if (sectionId === 'sec-team') renderTeamDirectory();
+  if (sectionId === 'sec-special-events') renderSpecialEvents();
+  if (sectionId === 'sec-agenda') renderCalendar();
+  if (sectionId === 'sec-programacion') renderProgramHistory();
 }
 
 // --- RENDERIZADO GENERAL DE DATOS ---
@@ -1304,6 +1322,15 @@ async function renderSpecialEvents() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const yearMonthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+    
+    const monthNames = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+    const specialMonthYearEl = document.getElementById('special-month-year');
+    if (specialMonthYearEl) {
+      specialMonthYearEl.textContent = `${monthNames[month]} ${year}`;
+    }
     
     // Obtener eventos especiales de este mes
     const events = await getSpecialEvents(yearMonthStr);
