@@ -106,7 +106,13 @@ const DOM = {
   specialEventForm: document.getElementById('special-event-form'),
   seName: document.getElementById('se-name'),
   seDate: document.getElementById('se-date'),
-  seTime: document.getElementById('se-time'),
+  
+  // Modal Opciones Video
+  videoPlayModal: document.getElementById('video-play-modal'),
+  btnCloseVideoModal: document.getElementById('btn-close-video-modal'),
+  videoModalName: document.getElementById('video-modal-name'),
+  btnVideoGoYoutube: document.getElementById('btn-video-go-youtube'),
+  btnVideoPlayHere: document.getElementById('btn-video-play-here'),
   
   // Módulo: Programaciones
   uploadPanelContainer: document.getElementById('upload-panel-container'),
@@ -511,6 +517,10 @@ function setupEventListeners() {
   });
   DOM.btnCloseSpecialEventModal.addEventListener('click', () => {
     DOM.specialEventModal.classList.add('hidden');
+  });
+
+  DOM.btnCloseVideoModal.addEventListener('click', () => {
+    DOM.videoPlayModal.classList.add('hidden');
   });
 
   // Crear Evento Especial
@@ -1777,7 +1787,7 @@ async function renderYouTubeLive() {
       const formattedDate = `${pubDate.getDate()}/${pubDate.getMonth() + 1}/${pubDate.getFullYear()}`;
       
       return `
-        <div class="program-card glass-panel btn-play-recorded" data-id="${videoId}" style="padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); cursor: pointer;">
+        <div class="program-card glass-panel btn-play-recorded" data-id="${videoId}" data-title="${item.title.replace(/"/g, '&quot;')}" style="padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); cursor: pointer;">
           <div>
             <div style="aspect-ratio: 16/9; background: #000; border-radius: 4px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05);">
               <img src="${item.thumbnail}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;">
@@ -1794,8 +1804,21 @@ async function renderYouTubeLive() {
     recentGrid.querySelectorAll('.btn-play-recorded').forEach(card => {
       card.addEventListener('click', () => {
         const id = card.getAttribute('data-id');
-        iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
-        iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const title = card.getAttribute('data-title');
+        
+        // Configurar contenido del modal
+        DOM.videoModalName.textContent = title;
+        DOM.btnVideoGoYoutube.href = `https://www.youtube.com/watch?v=${id}`;
+        
+        // Manejar reproducción local
+        DOM.btnVideoPlayHere.onclick = () => {
+          DOM.videoPlayModal.classList.add('hidden');
+          iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+          iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+        
+        // Mostrar el modal
+        DOM.videoPlayModal.classList.remove('hidden');
       });
     });
     
