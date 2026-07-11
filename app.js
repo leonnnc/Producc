@@ -30,6 +30,9 @@ let selectedFileBase64 = null; // Archivo cargado en Base64
 let selectedFileType = null;   // Tipo del archivo cargado (image o pdf)
 let selectedFileName = null;   // Nombre del archivo cargado
 
+// YouTube Integration
+const YOUTUBE_CHANNEL_ID = 'UC-lHJZR3Gqxm24_Vd_AJ5Yw'; // PewDiePie or replacement channel ID
+
 // --- ELEMENTOS DEL DOM ---
 const DOM = {
   // Contenedores de vistas principales
@@ -528,6 +531,17 @@ function setupEventListeners() {
       alert("Error al crear evento especial: " + err.message);
     }
   });
+
+  // Transmisión en Vivo: Botón de señal en vivo
+  const btnShowLiveStream = document.getElementById('btn-show-live-stream');
+  if (btnShowLiveStream) {
+    btnShowLiveStream.addEventListener('click', () => {
+      const iframe = document.getElementById('main-live-iframe');
+      if (iframe) {
+        iframe.src = `https://www.youtube.com/embed/live_stream?channel=${YOUTUBE_CHANNEL_ID}`;
+      }
+    });
+  }
 }
 
 // Muestra alertas de error de Login/Registro
@@ -661,6 +675,7 @@ function navigateSection(sectionId) {
   if (sectionId === 'sec-special-events') renderSpecialEvents();
   if (sectionId === 'sec-agenda') renderCalendar();
   if (sectionId === 'sec-programacion') renderProgramHistory();
+  if (sectionId === 'sec-live') renderYouTubeLive();
 }
 
 // --- RENDERIZADO GENERAL DE DATOS ---
@@ -671,6 +686,7 @@ function renderApp() {
   renderSpecialEvents();
   renderProgramHistory();
   renderTeamDirectory();
+  renderYouTubeLive();
 }
 
 // ==========================================================================
@@ -1723,4 +1739,71 @@ function openFileViewer(progObj) {
   }
   
   DOM.viewerModal.classList.remove('hidden');
+}
+
+// Renderiza el reproductor de YouTube Live y las últimas 3 publicaciones
+async function renderYouTubeLive() {
+  const iframe = document.getElementById('main-live-iframe');
+  const recentGrid = document.getElementById('youtube-recent-grid');
+  
+  if (!iframe || !recentGrid) return;
+  
+  // Si no tiene src configurado (primera carga), poner el en vivo por defecto
+  if (!iframe.src || iframe.src === window.location.href) {
+    iframe.src = `https://www.youtube.com/embed/live_stream?channel=${YOUTUBE_CHANNEL_ID}`;
+  }
+  
+  recentGrid.innerHTML = `
+    <div style="grid-column: 1/-1; text-align: center; padding: 20px;">
+      <div class="loading-spinner"></div>
+    </div>
+  `;
+  
+  try {
+    const feedUrl = encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_CHANNEL_ID}`);
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${feedUrl}`);
+    const data = await res.json();
+    
+    if (data.status !== 'ok' || !data.items || data.items.length === 0) {
+      recentGrid.innerHTML = '<p class="placeholder-text" style="grid-column: 1/-1;">No se pudieron cargar las transmisiones anteriores.</p>';
+      return;
+    }
+    
+    const items = data.items.slice(0, 3);
+    
+    recentGrid.innerHTML = items.map(item => {
+      const videoId = item.link.split('v=')[1];
+      const pubDate = new Date(item.pubDate);
+      const formattedDate = `${pubDate.getDate()}/${pubDate.getMonth() + 1}/${pubDate.getFullYear()}`;
+      
+      return `
+        <div class="program-card glass-panel" style="padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02);">
+          <div>
+            <div style="aspect-ratio: 16/9; background: #000; border-radius: 4px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05);">
+              <img src="${item.thumbnail}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;">
+              <span class="badge badge-role" style="position: absolute; bottom: 5px; right: 5px; font-size: 8px; background: rgba(0,0,0,0.6);">Grabado</span>
+            </div>
+            <h5 style="color: white; font-size: 12px; font-weight: 500; margin: 8px 0 4px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 32px; line-height: 1.3;" title="${item.title}">${item.title}</h5>
+            <span style="font-size: 10px; color: var(--text-muted);"><i class="fa-regular fa-calendar"></i> ${formattedDate}</span>
+          </div>
+          <button class="btn btn-outline btn-xs btn-play-recorded" data-id="${videoId}" style="width: 100%; margin-top: 10px;">
+            <i class="fa-solid fa-play"></i> Reproducir en Pantalla
+          </button>
+        </div>
+      `;
+    }).join('');
+    
+    // Asignar click a los botones de reproducir
+    recentGrid.querySelectorAll('.btn-play-recorded').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+        iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+    
+  } catch (err) {
+    console.error("Error al cargar videos de YouTube:", err);
+    recentGrid.innerHTML = '<p class="placeholder-text" style="grid-column: 1/-1;">Error de conexión con YouTube.</p>';
+  }
 }
