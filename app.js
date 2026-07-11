@@ -1374,9 +1374,14 @@ async function openReserveModal(dateStr, slot, formattedDate) {
         </div>
       `;
     } else {
+      const isLeader = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.role === 'co_lider';
+      const instructionText = isLeader 
+        ? "Administra el personal del servicio activo abajo:"
+        : "Inscríbete en este servicio seleccionando tu casilla abajo:";
+
       actionPanelHtml = `
         <div style="background:rgba(255,255,255,0.02); padding:10px 15px; border-radius:6px; border:1px solid var(--border-glass); text-align:center;">
-          <span style="font-size:12px; color:white; font-weight:500;"><i class="fa-solid fa-user-clock"></i> Administra el personal del servicio activo abajo:</span>
+          <span style="font-size:12px; color:white; font-weight:500;"><i class="fa-solid fa-user-clock"></i> ${instructionText}</span>
         </div>
       `;
     }
