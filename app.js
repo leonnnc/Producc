@@ -97,6 +97,7 @@ const DOM = {
   // Módulo: Programaciones
   uploadPanelContainer: document.getElementById('upload-panel-container'),
   uploadProgramForm: document.getElementById('upload-program-form'),
+  uploadTitle: document.getElementById('upload-title'),
   uploadDate: document.getElementById('upload-date'),
   uploadTime: document.getElementById('upload-time'),
   fileDropZone: document.getElementById('file-drop-zone'),
@@ -417,6 +418,7 @@ function setupEventListeners() {
     }
 
     const progData = {
+      title: DOM.uploadTitle.value.trim(),
       date: DOM.uploadDate.value,
       time: DOM.uploadTime.value,
       fileName: selectedFileName,
@@ -682,10 +684,13 @@ async function renderActiveProgram() {
         </div>
         <div class="active-sheet-info">
           <div>
-            <h4 class="active-sheet-title">${activeProg.date}</h4>
-            <span class="active-sheet-time"><i class="fa-regular fa-clock"></i> Servicio: ${activeProg.time}</span>
+            <h4 class="active-sheet-title" style="margin-bottom: 2px;">${activeProg.title || "Servicio Técnico"}</h4>
+            <span class="active-sheet-time" style="font-size: 11px; display: flex; flex-direction: column; gap: 2px; color: var(--text-muted);">
+              <span><i class="fa-regular fa-calendar"></i> ${activeProg.date}</span>
+              <span><i class="fa-regular fa-clock"></i> Horario: ${activeProg.time}</span>
+            </span>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:8px; margin-top: 8px;">
             <button class="btn btn-outline btn-xs btn-view-prog" data-id="${activeProg.id}">
               <i class="fa-regular fa-eye"></i> Visualizar
             </button>
@@ -1305,8 +1310,12 @@ async function renderProgramHistory() {
     const progs = await getProgramSheets();
     
     // Filtro por texto
-    const filterText = DOM.searchHistory.value.trim();
-    const filtered = progs.filter(p => p.date.includes(filterText) || p.time.toLowerCase().includes(filterText.toLowerCase()));
+    const filterText = DOM.searchHistory.value.trim().toLowerCase();
+    const filtered = progs.filter(p => 
+      p.date.includes(filterText) || 
+      p.time.toLowerCase().includes(filterText) ||
+      (p.title && p.title.toLowerCase().includes(filterText))
+    );
     
     if (filtered.length === 0) {
       DOM.programHistoryGrid.innerHTML = '<p class="placeholder-text" style="grid-column: 1/-1;">No se encontraron hojas de programación en los registros.</p>';
@@ -1329,8 +1338,9 @@ async function renderProgramHistory() {
             }
             ${isActive ? `<span class="badge badge-success" style="position:absolute; top:8px; right:8px; font-size:8px;">Activo</span>` : ''}
           </div>
-          <div class="program-card-info">
-            <span class="prog-date">${p.date}</span>
+          <div class="program-card-info" style="display:flex; flex-direction:column; gap:2px;">
+            <h4 style="font-size:12px; font-weight:600; color:white; margin:0 0 4px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${p.title || 'Servicio Técnico'}">${p.title || 'Servicio Técnico'}</h4>
+            <span class="prog-date" style="font-size:10px; color:var(--text-muted);"><i class="fa-regular fa-calendar"></i> ${p.date}</span>
             <span class="prog-time"><i class="fa-regular fa-clock"></i> ${p.time}</span>
             <span class="prog-uploader">Por: ${p.uploadedBy}</span>
             <div style="display:flex; gap:6px; margin-top:8px;">
@@ -1502,7 +1512,7 @@ async function renderTeamDirectory() {
 // VISOR DE ARCHIVOS INTEGRADO (MODAL PREVIEW)
 // ==========================================================================
 function openFileViewer(progObj) {
-  DOM.viewerModalTitle.textContent = `Programación - ${progObj.date} (Servicio ${progObj.time})`;
+  DOM.viewerModalTitle.textContent = `${progObj.title || "Programación"} - ${progObj.date} (Servicio ${progObj.time})`;
   
   if (progObj.fileType === 'pdf') {
     // Si es un archivo PDF, usamos un iframe apuntando al Base64.
