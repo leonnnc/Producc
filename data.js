@@ -450,7 +450,8 @@ export async function signupForService(date, time, user) {
     userAlias: user.alias,
     userName: user.name,
     userArea: user.area,
-    userRole: user.role
+    userRole: user.role,
+    createdAt: new Date().toISOString()
   };
 
   const fb = await dbPromise;

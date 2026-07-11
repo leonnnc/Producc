@@ -942,15 +942,19 @@ async function renderActiveAgenda() {
                 <i class="fa-regular fa-clock"></i> ${formatKey(key).toUpperCase()}
               </div>
               <div class="agenda-flat-members">
-                ${serviceGroups[key].map(m => `
-                  <div class="agenda-flat-member">
-                    <div class="agenda-flat-member-info">
-                      <i class="fa-solid fa-user-check text-cyan" style="font-size:11px;"></i>
-                      <span>${m.userName} <small style="color:var(--text-muted);">(@${m.userAlias})</small></span>
+                ${determineBackupStatus(serviceGroups[key]).map(m => {
+                  const label = m.isBackup ? `${m.userArea} (Apoyo)` : m.userArea;
+                  const style = m.isBackup ? 'background:rgba(245,158,11,0.1); color:#f59e0b; border:1px solid rgba(245,158,11,0.2);' : '';
+                  return `
+                    <div class="agenda-flat-member">
+                      <div class="agenda-flat-member-info">
+                        <i class="fa-solid fa-user-check text-cyan" style="font-size:11px;"></i>
+                        <span>${m.userName} <small style="color:var(--text-muted);">(@${m.userAlias})</small></span>
+                      </div>
+                      <span class="agenda-flat-member-area" style="${style}">${label}</span>
                     </div>
-                    <span class="agenda-flat-member-area">${m.userArea}</span>
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             </div>
           `).join('')}
@@ -1218,6 +1222,38 @@ async function renderCalendar() {
   });
 }
 
+// Determina si las asignaciones deben considerarse de apoyo (backup)
+function determineBackupStatus(signupsList) {
+  // Ordenar por fecha de creación (createdAt) o id
+  const sorted = [...signupsList].sort((a, b) => {
+    const timeA = a.createdAt || '';
+    const timeB = b.createdAt || '';
+    return timeA.localeCompare(timeB);
+  });
+  
+  let switchersCount = 0;
+  let camerasCount = 0;
+  
+  return sorted.map(s => {
+    let isBackup = false;
+    if (s.userArea === 'Switchers') {
+      switchersCount++;
+      if (switchersCount > 1) {
+        isBackup = true;
+      }
+    } else if (s.userArea === 'Cámaras') {
+      camerasCount++;
+      if (camerasCount > 3) {
+        isBackup = true;
+      }
+    }
+    return {
+      ...s,
+      isBackup
+    };
+  });
+}
+
 // Abre el modal detallado para ver quién reservó y gestionar la reserva propia
 async function openReserveModal(dateStr, slot, formattedDate) {
   DOM.reserveModalTitle.textContent = `${formattedDate} - ${slot}`;
@@ -1231,6 +1267,7 @@ async function openReserveModal(dateStr, slot, formattedDate) {
 
     // 2. Obtener los anotados para esta fecha y hora
     const signups = await getServiceSignups(dateStr, slot);
+    const signupsWithBackup = determineBackupStatus(signups);
     const isSignedUp = signups.some(s => s.userAlias === currentUser.alias);
 
     const parsedDate = new Date(dateStr + 'T00:00:00');
@@ -1249,23 +1286,21 @@ async function openReserveModal(dateStr, slot, formattedDate) {
     let signupsHtml = `
       <div class="agenda-flat-list" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
         ${Object.keys(groups).map(area => {
-          const areaSignups = signups.filter(x => x.userArea === area);
-          let capacityLabel = '';
-          if (area === 'Switchers') {
-            capacityLabel = `(${areaSignups.length}/1)`;
-          } else if (area === 'Cámaras') {
-            capacityLabel = `(${areaSignups.length}/3)`;
-          }
-          
           return `
             <div class="agenda-flat-service" style="margin-bottom: 8px;">
-              <div class="agenda-flat-service-header" style="font-size: 10px; border-bottom-color: rgba(255, 255, 255, 0.05); padding-bottom: 4px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
-                <span><i class="fa-solid fa-people-group"></i> ${area.toUpperCase()}</span>
-                <span style="font-size: 9px; opacity: 0.8; color: var(--color-cyan); font-weight:600;">${capacityLabel}</span>
+              <div class="agenda-flat-service-header" style="font-size: 10px; border-bottom-color: rgba(255, 255, 255, 0.05); padding-bottom: 4px; margin-bottom: 8px;">
+                <i class="fa-solid fa-people-group"></i> ${area.toUpperCase()}
               </div>
               <div class="agenda-flat-members">
                 ${groups[area].map(s => {
                   const isAssigned = signups.some(x => x.userAlias === s.alias);
+                  const assignedInfo = signupsWithBackup.find(x => x.userAlias === s.alias);
+                  const isBackup = assignedInfo ? assignedInfo.isBackup : false;
+                  
+                  const backupBadge = (isAssigned && isBackup)
+                    ? `<span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:9px; padding:2px 4px; border:1px solid rgba(245,158,11,0.2); border-radius:3px; margin-left:5px;">Apoyo</span>`
+                    : '';
+
                   const canToggle = !isPast && (currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider' || currentUser.alias === s.alias);
                   
                   let actionHtml = '';
@@ -1287,7 +1322,7 @@ async function openReserveModal(dateStr, slot, formattedDate) {
                     <div class="agenda-flat-member">
                       <div class="agenda-flat-member-info">
                         <i class="fa-solid fa-user-check text-cyan" style="font-size:11px;"></i>
-                        <span style="${isAssigned ? 'font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small></span>
+                        <span style="${isAssigned ? 'font-weight:600; color:white;' : 'color:var(--text-muted);'}">${s.name} <small style="color:var(--text-muted);">(@${s.alias})</small>${backupBadge}</span>
                       </div>
                       ${actionHtml}
                     </div>
@@ -1339,21 +1374,6 @@ async function openReserveModal(dateStr, slot, formattedDate) {
             if (assigned) {
               await cancelSignupForService(dateStr, slot, alias);
             } else {
-              // Validar límites de capacidad (1 Switcher y 3 Cámaras por servicio)
-              if (targetServant.area === 'Switchers') {
-                const switchersCount = signups.filter(x => x.userArea === 'Switchers').length;
-                if (switchersCount >= 1) {
-                  alert("Advertencia: Ya se encuentra asignado un Switcher para este servicio. Solo se permite 1 Switcher por turno.");
-                  return;
-                }
-              } else if (targetServant.area === 'Cámaras') {
-                const camerasCount = signups.filter(x => x.userArea === 'Cámaras').length;
-                if (camerasCount >= 3) {
-                  alert("Advertencia: Ya se encuentran asignadas las 3 Cámaras requeridas para este servicio.");
-                  return;
-                }
-              }
-
               await signupForService(dateStr, slot, targetServant);
             }
             // Volver a cargar el modal
