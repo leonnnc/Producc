@@ -447,22 +447,7 @@ export async function loginUserWithGoogle() {
   const querySnapshot = await fb.firestore.getDocs(q);
   
   if (querySnapshot.empty) {
-    const emailParts = user.email.split('@');
-    const alias = emailParts[0].replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
-    
-    const newGoogleUser = {
-      alias: alias,
-      name: user.displayName || "Usuario de Google",
-      email: user.email,
-      phone: user.phoneNumber || "+51 900000000",
-      district: "No asignado",
-      area: "Otros",
-      role: "siervo",
-      password: "google_authenticated"
-    };
-    
-    await fb.firestore.setDoc(fb.firestore.doc(fb.firebaseDb, "users", alias), newGoogleUser);
-    return newGoogleUser;
+    throw new Error("Este correo de Google no está registrado en el sistema. Por favor, regístrate primero usando el formulario.");
   }
   
   const userData = querySnapshot.docs[0].data();
