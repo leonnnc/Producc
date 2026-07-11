@@ -1038,7 +1038,7 @@ async function renderAnnouncements() {
     DOM.announcementsContainer.innerHTML = list.map(ann => {
       const expirationInfo = ann.eventDate 
         ? `<div style="font-size: 10px; color: var(--color-cyan); margin-top: 5px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-             <i class="fa-solid fa-clock-rotate-left"></i> Vence: ${ann.eventDate} ${ann.eventTime}
+             <i class="fa-solid fa-clock-rotate-left"></i> ${ann.eventDate} ${ann.eventTime}
            </div>`
         : '';
 
