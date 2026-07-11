@@ -649,7 +649,6 @@ function navigateSection(sectionId) {
   if (sectionId === 'sec-team') title = "Usuarios";
   if (sectionId === 'sec-special-events') title = "Eventos Especiales";
   if (sectionId === 'sec-agenda') title = "Agenda de Servicio";
-  if (sectionId === 'sec-metrics') title = "Métricas y Asistencia";
   if (sectionId === 'sec-programacion') title = "Programación";
   if (sectionId === 'sec-live') title = "Transmisión en Vivo";
   if (sectionId === 'sec-learn') title = "Aprende";
