@@ -263,6 +263,13 @@ function setupEventListeners() {
     const username = document.getElementById('login-username').value.trim();
     const pass = document.getElementById('login-password').value;
     
+    const submitBtn = document.getElementById('btn-login-submit');
+    const originalHtml = submitBtn.innerHTML;
+    
+    // Activar spinner de carga
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="loading-spinner" style="width: 14px; height: 14px; border-width: 2px; border-color: white; border-top-color: transparent; display: inline-block; margin-right: 8px; vertical-align: middle;"></span> Iniciando Sesión...`;
+    
     try {
       const user = await loginUser(username, pass);
       currentUser = user;
@@ -270,6 +277,9 @@ function setupEventListeners() {
       loginSuccess();
     } catch (err) {
       showAuthError(err.message);
+      // Restaurar botón
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
     }
   });
 
@@ -293,6 +303,13 @@ function setupEventListeners() {
       return;
     }
 
+    const submitBtn = document.getElementById('btn-register-submit');
+    const originalHtml = submitBtn.innerHTML;
+    
+    // Activar spinner de carga
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="loading-spinner" style="width: 14px; height: 14px; border-width: 2px; border-color: white; border-top-color: transparent; display: inline-block; margin-right: 8px; vertical-align: middle;"></span> Creando Cuenta...`;
+
     try {
       const registeredUser = await registerUser(userData);
       
@@ -302,10 +319,16 @@ function setupEventListeners() {
       
       showSuccessOverlay("Registro Completado", "Tu cuenta ha sido creada exitosamente. Iniciando sesión...", () => {
         DOM.registerForm.reset();
+        // Restaurar estado
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalHtml;
         loginSuccess();
       });
     } catch (err) {
       showAuthError(err.message);
+      // Restaurar botón
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
     }
   });
 
