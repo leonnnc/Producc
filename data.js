@@ -370,6 +370,12 @@ export async function getAnnouncements() {
           console.error("Error al eliminar anuncio expirado:", err);
         });
       }
+    } else {
+      // Si no tiene fecha de evento (los antiguos/semilla de prueba), los eliminamos también de Firebase
+      isExpired = true;
+      fb.firestore.deleteDoc(fb.firestore.doc(fb.firebaseDb, "announcements", docSnap.id)).catch(err => {
+        console.error("Error al eliminar anuncio antiguo sin fecha:", err);
+      });
     }
 
     if (!isExpired) {
