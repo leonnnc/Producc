@@ -182,25 +182,20 @@ export async function getUsers(currentUser) {
     return allUsers.filter(u => u.role !== "admin");
   }
   
-  // Para Líderes y Co-Líderes
-  if (currentUser.role === "lider" || currentUser.role === "co_lider") {
-    const isSwitchOrCam = currentUser.area === "Switchers" || currentUser.area === "Cámaras";
-    
-    return allUsers.filter(u => {
-      if (u.role === "admin") return false;
-      
-      // Si el líder es de Switchers o Cámaras, ve ambos grupos
-      if (isSwitchOrCam) {
-        return u.area === "Switchers" || u.area === "Cámaras";
-      }
-      
-      // Para otras áreas (ej. Fotografía, Audio, etc.), ve solo su propia área
-      return u.area === currentUser.area;
-    });
-  }
+  // Para Líderes, Co-Líderes y Siervos: ven su propia área (Switchers y Cámaras ven ambos)
+  const isSwitchOrCam = currentUser.area === "Switchers" || currentUser.area === "Cámaras";
   
-  // Siervos regulares no tienen acceso a ver otros usuarios
-  return [];
+  return allUsers.filter(u => {
+    if (u.role === "admin") return false;
+    
+    // Si es de Switchers o Cámaras, ve ambos grupos
+    if (isSwitchOrCam) {
+      return u.area === "Switchers" || u.area === "Cámaras";
+    }
+    
+    // Para otras áreas, ve solo su propia área
+    return u.area === currentUser.area;
+  });
 }
 
 /**
