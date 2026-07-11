@@ -568,6 +568,33 @@ function setupEventListeners() {
   }
 }
 
+// Muestra una notificación Toast (éxito, error, info)
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  let iconClass = 'fa-circle-check';
+  if (type === 'error') iconClass = 'fa-circle-xmark';
+  else if (type === 'info') iconClass = 'fa-circle-info';
+  
+  toast.innerHTML = `
+    <i class="fa-solid ${iconClass} toast-icon"></i>
+    <div class="toast-message" style="line-height:1.4;">${message}</div>
+  `;
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
 // Muestra alertas de error de Login/Registro
 function showAuthError(msg) {
   DOM.authAlert.textContent = msg;
@@ -1364,7 +1391,7 @@ async function renderCalendar() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (parsedDate < today) {
-      alert("Este servicio ya finalizó. No se pueden realizar cambios.");
+      showToast("Este servicio ya finalizó. No se pueden realizar cambios.", "error");
       return;
     }
     
@@ -1378,11 +1405,11 @@ async function renderCalendar() {
       if (isAssigned) {
         // Retirarse del servicio
         await cancelSignupForService(dateStr, slot, currentUser.alias);
-        alert(`Te has retirado del servicio del ${slot}.`);
+        showToast(`Te has retirado del servicio del ${slot}.`, "info");
       } else {
         // Inscribirse al servicio
         await signupForService(dateStr, slot, currentUser);
-        alert(`Te has inscrito exitosamente para el servicio del ${slot}.`);
+        showToast(`Te has inscrito exitosamente para el servicio del ${slot}.`, "success");
       }
       
       // 3. Actualizar grilla principal, agenda y notificaciones del dashboard
@@ -1391,7 +1418,7 @@ async function renderCalendar() {
       renderAgendaNotifications();
       
     } catch (err) {
-      alert("Error al actualizar la asignación: " + err.message);
+      showToast("Error al actualizar la asignación: " + err.message, "error");
     }
   };
 
@@ -1565,7 +1592,7 @@ async function openReserveModal(dateStr, slot, formattedDate) {
             renderActiveAgenda();
             renderAgendaNotifications();
           } catch (err) {
-            alert("Error al actualizar la asignación: " + err.message);
+            showToast("Error al actualizar la asignación: " + err.message, "error");
           }
         });
       });
