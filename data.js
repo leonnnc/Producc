@@ -149,6 +149,17 @@ export async function registerUser(userData) {
   }
   
   await fb.firestore.setDoc(userDocRef, newUser);
+  
+  // Retornar el usuario registrado excluyendo la contraseña
+  return {
+    alias: newUser.alias,
+    name: newUser.name,
+    email: newUser.email,
+    phone: newUser.phone,
+    district: newUser.district,
+    area: newUser.area,
+    role: newUser.role
+  };
 }
 
 /**

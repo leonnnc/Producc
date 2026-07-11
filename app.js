@@ -315,17 +315,15 @@ function setupEventListeners() {
     }
 
     try {
-      await registerUser(userData);
-      showSuccessOverlay("Registro Completado", "Tu cuenta ha sido creada exitosamente. Ya puedes iniciar sesión.", () => {
+      const registeredUser = await registerUser(userData);
+      
+      // Auto login
+      currentUser = registeredUser;
+      sessionStorage.setItem('erp_active_user', JSON.stringify(currentUser));
+      
+      showSuccessOverlay("Registro Completado", "Tu cuenta ha sido creada exitosamente. Iniciando sesión...", () => {
         DOM.registerForm.reset();
-        DOM.registerForm.classList.add('hidden');
-        DOM.loginForm.classList.remove('hidden');
-        DOM.authSubtitle.textContent = "Ingresa tus credenciales para acceder al sistema";
-        
-        // Mostrar alerta de éxito
-        DOM.authAlert.textContent = "¡Registro completado con éxito! Ya puedes iniciar sesión con tus credenciales.";
-        DOM.authAlert.className = "alert-box success";
-        DOM.authAlert.classList.remove('hidden');
+        loginSuccess();
       });
     } catch (err) {
       showAuthError(err.message);
