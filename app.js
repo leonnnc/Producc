@@ -1272,6 +1272,9 @@ async function renderCalendar() {
     }
   }
 
+  // OPTIMIZACIÓN: Traer todas las inscripciones del tirón en una sola llamada a Firestore
+  const allSignups = await getAllServiceSignups();
+
   // --- RENDERIZAR TABLA DE DOMINGOS ---
   const sundaySlots = ["08:00 AM", "11:00 AM", "01:00 PM", "07:00 PM"];
   let sundayHtml = `
@@ -1293,7 +1296,8 @@ async function renderCalendar() {
         <td class="time-header-cell">${slot}</td>
     `;
     for (const s of sundays) {
-      const signups = await getServiceSignups(s.dateStr, slot);
+      // Filtrar en memoria
+      const signups = allSignups.filter(x => x.date === s.dateStr && x.time === slot);
       const isSignedUp = signups.some(x => x.userAlias === currentUser.alias);
       
       const dateObj = new Date(s.dateStr + 'T00:00:00');
@@ -1345,7 +1349,8 @@ async function renderCalendar() {
         <td class="time-header-cell">${slot}</td>
     `;
     for (const w of wednesdays) {
-      const signups = await getServiceSignups(w.dateStr, slot);
+      // Filtrar en memoria
+      const signups = allSignups.filter(x => x.date === w.dateStr && x.time === slot);
       const isSignedUp = signups.some(x => x.userAlias === currentUser.alias);
       
       const dateObj = new Date(w.dateStr + 'T00:00:00');
