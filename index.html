@@ -682,6 +682,29 @@
             <label for="se-time">Hora del Evento</label>
             <input type="text" id="se-time" required placeholder="Ej: 06:00 PM, 10:00 AM">
           </div>
+          <div class="form-group">
+            <label><i class="fa-solid fa-layer-group"></i> Áreas requeridas para apoyo:</label>
+            <div id="se-areas-checklist" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); margin: 0; cursor: pointer;">
+                <input type="checkbox" value="Switchers" style="cursor: pointer;"> Switchers
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); margin: 0; cursor: pointer;">
+                <input type="checkbox" value="Cámaras" style="cursor: pointer;"> Cámaras
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); margin: 0; cursor: pointer;">
+                <input type="checkbox" value="Fotografía" style="cursor: pointer;"> Fotografía
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); margin: 0; cursor: pointer;">
+                <input type="checkbox" value="Audio" style="cursor: pointer;"> Audio
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); margin: 0; cursor: pointer;">
+                <input type="checkbox" value="Pantallas" style="cursor: pointer;"> Pantallas
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-light); margin: 0; cursor: pointer;">
+                <input type="checkbox" value="Iluminación" style="cursor: pointer;"> Iluminación
+              </label>
+            </div>
+          </div>
           <button type="submit" class="btn btn-primary btn-block">Crear Evento</button>
         </form>
       </div>
@@ -710,6 +733,30 @@
             <i class="fa-solid fa-desktop"></i> Intentar ver en esta Web
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Designar Personal para Evento Especial -->
+  <div id="designate-staff-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-panel" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 id="designate-modal-title">Designar Personal</h3>
+        <button id="btn-close-designate-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 15px;">
+          <span class="badge badge-active" id="designate-area-badge" style="background: rgba(0,229,255,0.1); color: var(--color-cyan); border: 1px solid rgba(0,229,255,0.2);">Área</span>
+        </div>
+        <form id="designate-staff-form">
+          <div class="form-group">
+            <label style="margin-bottom: 10px; display: block;"><i class="fa-solid fa-user-check"></i> Selecciona los siervos de tu área:</label>
+            <div id="designate-checklist-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+              <!-- Se inyecta dinámicamente -->
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 15px;">Guardar Asignaciones</button>
+        </form>
       </div>
     </div>
   </div>

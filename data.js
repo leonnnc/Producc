@@ -522,15 +522,42 @@ export async function getAllServiceSignups() {
 /**
  * Crea un evento especial en la base de datos.
  */
-export async function createSpecialEvent(name, date, time, currentUser) {
+export async function createSpecialEvent(name, date, time, requestedAreas, currentUser) {
   if (currentUser.role !== "admin" && currentUser.role !== "slider" && currentUser.role !== "lider") {
     throw new Error("No tienes permisos suficientes para crear eventos especiales.");
   }
   const id = `se_${Date.now()}`;
-  const event = { id, name, date, time, createdBy: currentUser.name, timestamp: new Date().toISOString() };
+  const event = { 
+    id, 
+    name, 
+    date, 
+    time, 
+    requestedAreas: requestedAreas || [], 
+    assignments: {}, 
+    createdBy: currentUser.name, 
+    timestamp: new Date().toISOString() 
+  };
   const fb = await dbPromise;
   const docRef = fb.firestore.doc(fb.firebaseDb, "special_events", id);
   await fb.firestore.setDoc(docRef, event);
+  return event;
+}
+
+/**
+ * Actualiza las asignaciones de personal por área para un evento especial.
+ */
+export async function updateSpecialEventAssignments(eventId, areaName, assignedUserAliases) {
+  const fb = await dbPromise;
+  const docRef = fb.firestore.doc(fb.firebaseDb, "special_events", eventId);
+  const docSnap = await fb.firestore.getDoc(docRef);
+  if (!docSnap.exists()) {
+    throw new Error("El evento no existe.");
+  }
+  const event = docSnap.data();
+  if (!event.assignments) event.assignments = {};
+  event.assignments[areaName] = assignedUserAliases;
+  
+  await fb.firestore.setDoc(docRef, event, { merge: true });
   return event;
 }
 

@@ -17,7 +17,8 @@ import {
   getAllServiceSignups,
   createSpecialEvent,
   getSpecialEvents,
-  deleteSpecialEvent
+  deleteSpecialEvent,
+  updateSpecialEventAssignments
 } from './data.js';
 
 import { isFirebaseConfigured } from './firebase-config.js';
@@ -105,6 +106,7 @@ const DOM = {
   specialEventForm: document.getElementById('special-event-form'),
   seName: document.getElementById('se-name'),
   seDate: document.getElementById('se-date'),
+  seTime: document.getElementById('se-time'),
   
   // Modal Opciones Video
   videoPlayModal: document.getElementById('video-play-modal'),
@@ -532,15 +534,20 @@ function setupEventListeners() {
     const date = DOM.seDate.value;
     const time = DOM.seTime.value.trim();
     
+    // Obtener áreas seleccionadas
+    const checkedBoxes = DOM.specialEventForm.querySelectorAll('#se-areas-checklist input[type="checkbox"]:checked');
+    const requestedAreas = Array.from(checkedBoxes).map(cb => cb.value);
+    
     try {
-      await createSpecialEvent(name, date, time, currentUser);
+      await createSpecialEvent(name, date, time, requestedAreas, currentUser);
       DOM.specialEventForm.reset();
       DOM.specialEventModal.classList.add('hidden');
       renderCalendar(); // Refrescar el calendario
-      addAuditLog("info", `Nuevo evento especial creado: "${name}" para el ${date} a las ${time}`);
-      alert("Evento especial creado con éxito.");
+      renderSpecialEvents(); // Refrescar lista de eventos especiales
+      addAuditLog("info", `Nuevo evento especial creado: "${name}" para el ${date} a las ${time} (Áreas: ${requestedAreas.join(', ') || 'Ninguna'})`);
+      showToast("Evento especial creado con éxito.", "success");
     } catch (err) {
-      alert("Error al crear evento especial: " + err.message);
+      showToast("Error al crear evento especial: " + err.message, "error");
     }
   });
 
@@ -563,6 +570,36 @@ function setupEventListeners() {
       if (iframe) {
         iframe.src = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent('https://www.facebook.com/share/v/1UpBbpJeqW/')}&show_text=0&width=560`;
         iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+
+  // Modales adicionales (Designar personal de Eventos Especiales)
+  const designateModal = document.getElementById('designate-staff-modal');
+  const btnCloseDesignateModal = document.getElementById('btn-close-designate-modal');
+  if (btnCloseDesignateModal && designateModal) {
+    btnCloseDesignateModal.addEventListener('click', () => {
+      designateModal.classList.add('hidden');
+    });
+  }
+
+  const designateStaffForm = document.getElementById('designate-staff-form');
+  if (designateStaffForm && designateModal) {
+    designateStaffForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const eventId = designateStaffForm.getAttribute('data-event-id');
+      const areaName = designateStaffForm.getAttribute('data-area');
+      const checklistContainer = document.getElementById('designate-checklist-container');
+      const checkedBoxes = checklistContainer.querySelectorAll('input[type="checkbox"]:checked');
+      const assignedAliases = Array.from(checkedBoxes).map(cb => cb.value);
+      
+      try {
+        await updateSpecialEventAssignments(eventId, areaName, assignedAliases);
+        showToast(`Personal designado con éxito para el área de ${areaName}.`, "success");
+        designateModal.classList.add('hidden');
+        renderSpecialEvents();
+      } catch (err) {
+        showToast("Error al guardar asignaciones: " + err.message, "error");
       }
     });
   }
@@ -1627,13 +1664,16 @@ async function renderSpecialEvents() {
       specialMonthYearEl.textContent = `${monthNames[month]} ${year}`;
     }
     
+    // Obtener todos los usuarios del sistema para resolver aliases
+    const allUsers = await getUsers(currentUser);
+    
     // Obtener eventos especiales de este mes
     const events = await getSpecialEvents(yearMonthStr);
     
     if (events.length === 0) {
       DOM.specialEventsContainer.innerHTML = `
-        <p class="placeholder-text" style="text-align:center; padding: 20px 0;">
-          <i class="fa-regular fa-star" style="font-size:24px; margin-bottom:8px; display:block; color:var(--text-muted);"></i>
+        <p class="placeholder-text" style="text-align:center; padding: 30px 0;">
+          <i class="fa-regular fa-star" style="font-size:28px; margin-bottom:10px; display:block; color:var(--text-muted);"></i>
           No hay eventos especiales programados para este mes.
         </p>
       `;
@@ -1649,28 +1689,14 @@ async function renderSpecialEvents() {
     const isStaff = currentUser.role === 'admin' || currentUser.role === 'slider' || currentUser.role === 'lider';
 
     let html = `
-      <table class="agenda-matrix-table">
-        <thead>
-          <tr>
-            <th>Evento Especial</th>
-            <th>Fecha</th>
-            <th>Hora</th>
-            <th>Estado / Personal</th>
-            <th class="actions-col">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
     `;
 
     for (const ev of events) {
-      // Obtener el personal anotado para este evento especial
-      const signups = await getServiceSignups(ev.date, ev.time);
-      const isUserSignedUp = signups.some(s => s.userAlias === currentUser.alias);
-      
       const parsedDate = new Date(ev.date + 'T00:00:00');
       const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-      const formattedDateLabel = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} ${monthNames[parsedDate.getMonth()]}`;
+      const monthNamesShort = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      const formattedDateLabel = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} de ${monthNamesShort[parsedDate.getMonth()]}`;
 
       // Determinar si ya pasó el evento
       parsedDate.setHours(0,0,0,0);
@@ -1678,66 +1704,128 @@ async function renderSpecialEvents() {
       today.setHours(0,0,0,0);
       const isPast = parsedDate < today;
 
-      let actionBtn = '';
-      if (isPast) {
-        actionBtn = `<span style="font-size:11px; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Cerrado</span>`;
-      } else {
-        actionBtn = `
-          <button class="btn btn-outline btn-xs btn-reserve-special" data-date="${ev.date}" data-time="${ev.time}" data-name="${ev.name}" style="${isUserSignedUp ? 'border-color:var(--color-cyan); color:white;' : ''}">
-            <i class="fa-regular fa-calendar-check"></i> ${isUserSignedUp ? 'Ver / Anotado' : 'Ver / Anotarse'}
-          </button>
-        `;
-      }
-
-      // Botón para eliminar (solo coordinadores)
+      // Botón para eliminar (solo coordinadores/superlíderes)
       let deleteBtn = '';
       if (isStaff) {
         deleteBtn = `
-          <button class="btn btn-danger btn-xs btn-delete-special" data-id="${ev.id}" title="Eliminar Evento Especial" style="margin-left: 6px; padding: 4px 6px;">
+          <button class="btn btn-danger btn-xs btn-delete-special" data-id="${ev.id}" title="Eliminar Evento Especial" style="padding: 6px 8px; border-radius: 6px;">
             <i class="fa-solid fa-trash-can"></i>
           </button>
         `;
       }
 
+      // Renderizar áreas requeridas y su personal designado
+      let areasHtml = '';
+      if (ev.requestedAreas && ev.requestedAreas.length > 0) {
+        areasHtml = `
+          <div style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+            ${ev.requestedAreas.map(areaName => {
+              const areaAssignments = (ev.assignments && ev.assignments[areaName]) || [];
+              const assignedNames = areaAssignments.map(alias => {
+                const found = allUsers.find(u => u.alias === alias);
+                return found ? found.name : `@${alias}`;
+              }).join(', ');
+
+              // Validar si el usuario actual es líder de esa área en particular
+              const isLeaderOfThisArea = currentUser.area === areaName && (currentUser.role === 'lider' || currentUser.role === 'co_lider');
+              const isCoordinador = currentUser.role === 'admin' || currentUser.role === 'slider';
+              const canAssign = !isPast && (isCoordinador || isLeaderOfThisArea);
+
+              return `
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 6px; flex-wrap: wrap; gap: 8px; margin-bottom: 2px;">
+                  <div style="font-size: 12px; color: var(--text-light); flex: 1; min-width: 150px;">
+                    <strong style="color:var(--color-cyan); font-weight:600;">${areaName}:</strong> 
+                    <span style="${areaAssignments.length > 0 ? 'color:white; font-weight:500;' : 'color:var(--text-muted); font-style:italic; font-size:11px;'}">
+                      ${areaAssignments.length > 0 ? assignedNames : 'Aún sin personal asignado'}
+                    </span>
+                  </div>
+                  ${canAssign ? `
+                    <button class="btn btn-xs btn-outline btn-assign-staff" data-event-id="${ev.id}" data-area="${areaName}" style="padding: 2px 8px; font-size: 10px; display: flex; align-items: center; gap: 4px; border-color: rgba(0,229,255,0.25); color: var(--color-cyan);">
+                      <i class="fa-solid fa-user-plus"></i> Designar
+                    </button>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } else {
+        areasHtml = `
+          <p style="margin: 0; font-size: 11px; color: var(--text-muted); font-style: italic; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px;">
+            <i class="fa-solid fa-circle-info"></i> No se solicitaron áreas de apoyo específicas.
+          </p>
+        `;
+      }
+
       html += `
-        <tr>
-          <td><strong style="color:white; font-size:12px;">${ev.name}</strong></td>
-          <td><span style="font-size:12px; color:var(--text-muted);">${formattedDateLabel}</span></td>
-          <td><span style="font-size:12px; color:var(--text-muted);">${ev.time}</span></td>
-          <td>
-            <span class="badge ${signups.length > 0 ? 'badge-success' : 'badge-role'}" style="font-size:10px;">
-              ${signups.length} Anotado${signups.length === 1 ? '' : 's'}
-            </span>
-          </td>
-          <td>
-            <div style="display:flex; align-items:center;">
-              ${actionBtn}
-              ${deleteBtn}
+        <div class="special-event-card glass-panel" style="padding: 20px; border-radius: 12px; display: flex; flex-direction: column; gap: 15px; position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+            <div style="flex: 1;">
+              <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: white; line-height: 1.4;">${ev.name}</h4>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 12px;">
+                <span><i class="fa-regular fa-calendar"></i> ${formattedDateLabel}</span>
+                <span><i class="fa-regular fa-clock"></i> ${ev.time}</span>
+              </div>
             </div>
-          </td>
-        </tr>
+            ${deleteBtn}
+          </div>
+          
+          <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
+            <h5 style="margin: 0 0 8px 0; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Áreas requeridas para apoyo:</h5>
+            ${areasHtml}
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 10px; font-size: 10px; color: var(--text-muted);">
+            <span>${isPast ? '<span style="color:var(--color-red); font-weight:600;"><i class="fa-solid fa-lock"></i> Cerrado</span>' : '<span style="color:var(--color-cyan);"><i class="fa-solid fa-calendar-check"></i> Activo</span>'}</span>
+            <span>Creado por: ${ev.createdBy || 'Coordinador'}</span>
+          </div>
+        </div>
       `;
     }
 
     html += `
-        </tbody>
-      </table>
+      </div>
     `;
 
     DOM.specialEventsContainer.innerHTML = html;
 
-    // Asociar eventos click a los botones de inscripción
-    DOM.specialEventsContainer.querySelectorAll('.btn-reserve-special').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const date = btn.getAttribute('data-date');
-        const time = btn.getAttribute('data-time');
-        const name = btn.getAttribute('data-name');
+    // Asociar eventos click a los botones de Designar Personal
+    DOM.specialEventsContainer.querySelectorAll('.btn-assign-staff').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const eventId = btn.getAttribute('data-event-id');
+        const areaName = btn.getAttribute('data-area');
         
-        const parsedDate = new Date(date + 'T00:00:00');
-        const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-        const formattedDate = `${dayNames[parsedDate.getDay()]} ${parsedDate.getDate()} - Evento: ${name}`;
+        const ev = events.find(x => x.id === eventId);
+        const currentAssignments = (ev.assignments && ev.assignments[areaName]) || [];
         
-        openReserveModal(date, time, formattedDate);
+        // Cargar candidatos del área
+        const candidates = allUsers.filter(u => u.area === areaName && u.role !== 'admin');
+        
+        const checklistContainer = document.getElementById('designate-checklist-container');
+        if (candidates.length === 0) {
+          checklistContainer.innerHTML = `<p style="font-size:11px; color:var(--text-muted); text-align:center; padding: 15px 0;">No hay servidores registrados en el área de ${areaName}.</p>`;
+        } else {
+          checklistContainer.innerHTML = candidates.map(u => {
+            const isChecked = currentAssignments.includes(u.alias);
+            return `
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: white; cursor: pointer; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.02);">
+                <input type="checkbox" value="${u.alias}" ${isChecked ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--color-cyan);">
+                <span style="font-weight: 500;">${u.name} <small style="color: var(--text-muted);">(@${u.alias})</small></span>
+              </label>
+            `;
+          }).join('');
+        }
+
+        // Set metadata en el form y modal
+        const designateModal = document.getElementById('designate-staff-modal');
+        const designateStaffForm = document.getElementById('designate-staff-form');
+        document.getElementById('designate-modal-title').textContent = `Designar Personal: ${ev.name}`;
+        document.getElementById('designate-area-badge').textContent = `ÁREA: ${areaName.toUpperCase()}`;
+        
+        designateStaffForm.setAttribute('data-event-id', eventId);
+        designateStaffForm.setAttribute('data-area', areaName);
+        
+        designateModal.classList.remove('hidden');
       });
     });
 
@@ -1745,15 +1833,15 @@ async function renderSpecialEvents() {
     DOM.specialEventsContainer.querySelectorAll('.btn-delete-special').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
-        if (confirm("¿Estás seguro de que deseas eliminar este evento especial? Se perderán las reservas asociadas.")) {
+        if (confirm("¿Estás seguro de que deseas eliminar este evento especial?")) {
           try {
             await deleteSpecialEvent(id, currentUser);
-            alert("Evento especial eliminado con éxito.");
+            showToast("Evento especial eliminado con éxito.", "success");
             renderCalendar();
             renderSpecialEvents();
             renderActiveAgenda();
           } catch (err) {
-            alert("Error al eliminar evento especial: " + err.message);
+            showToast("Error al eliminar evento especial: " + err.message, "error");
           }
         }
       });
