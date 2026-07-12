@@ -532,19 +532,30 @@ function setupEventListeners() {
     e.preventDefault();
     const name = DOM.seName.value.trim();
     const date = DOM.seDate.value;
-    const time = DOM.seTime.value.trim();
+    const time = DOM.seTime.value.trim(); // Formato "15:30"
+    
+    // Convertir a formato 12 horas AM/PM
+    const formatTimeTo12Hour = (time24) => {
+      if (!time24) return "";
+      let [hours, minutes] = time24.split(':').map(Number);
+      const modifier = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 debe ser 12
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${modifier}`;
+    };
+    const formattedTime = formatTimeTo12Hour(time);
     
     // Obtener áreas seleccionadas
     const checkedBoxes = DOM.specialEventForm.querySelectorAll('#se-areas-checklist input[type="checkbox"]:checked');
     const requestedAreas = Array.from(checkedBoxes).map(cb => cb.value);
     
     try {
-      await createSpecialEvent(name, date, time, requestedAreas, currentUser);
+      await createSpecialEvent(name, date, formattedTime, requestedAreas, currentUser);
       DOM.specialEventForm.reset();
       DOM.specialEventModal.classList.add('hidden');
       renderCalendar(); // Refrescar el calendario
       renderSpecialEvents(); // Refrescar lista de eventos especiales
-      addAuditLog("info", `Nuevo evento especial creado: "${name}" para el ${date} a las ${time} (Áreas: ${requestedAreas.join(', ') || 'Ninguna'})`);
+      addAuditLog("info", `Nuevo evento especial creado: "${name}" para el ${date} a las ${formattedTime} (Áreas: ${requestedAreas.join(', ') || 'Ninguna'})`);
       showToast("Evento especial creado con éxito.", "success");
     } catch (err) {
       showToast("Error al crear evento especial: " + err.message, "error");
