@@ -1241,6 +1241,27 @@ input:focus, select:focus, textarea:focus {
   overflow: hidden;
 }
 
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-header h3 {
+  font-family: var(--font-header);
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
 .viewer-box {
   max-width: 80vh;
 }
